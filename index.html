@@ -8,18 +8,49 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        #map { height: 600px; }
-        .tooltip {
-            position: absolute;
-            background: white;
+        #map { height: 600px; margin-bottom: 10px; }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px;
+            max-width: 400px;
+        }
+        label, select, input, button {
+            font-size: 14px;
             padding: 5px;
-            border: 1px solid #ccc;
-            pointer-events: none;
         }
     </style>
 </head>
 <body>
     <h1>Earthquake Visualization (2024-2025)</h1>
+    <div class="controls">
+        <label for="magnitude">Magnitude:</label>
+        <select id="magnitude" multiple>
+            <option value="3">3.0+</option>
+            <option value="4">4.0+</option>
+            <option value="5">5.0+</option>
+            <option value="6">6.0+</option>
+            <option value="7">7.0+</option>
+        </select>
+        
+        <label for="depth">Depth Range (km):</label>
+        <input type="range" id="depth" min="0" max="700" step="10">
+        
+        <label for="timeRange">Time Range:</label>
+        <input type="date" id="startTime">
+        <input type="date" id="endTime">
+
+        <button onclick="applyFilters()">Apply Filters</button>
+        <button onclick="resetFilters()">Reset</button>
+        
+        <h3>Animation Controls</h3>
+        <label for="speed">Speed (ms per day):</label>
+        <input type="number" id="speed" value="500">
+        <button onclick="startAnimationUI()">Start Animation</button>
+        <button onclick="stopAnimation()">Stop Animation</button>
+    </div>
+    
     <div id="map"></div>
     <script src="js/main.js"></script>
 </body>
