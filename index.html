@@ -14,6 +14,12 @@
     <h1>Earthquake Visualization (2024-2025)</h1>
     <div class="container">
         <div class="controls">
+            <label for="mapStyle">Map Style:</label>
+            <select id="mapStyle">
+                <option value="osm">OpenStreetMap</option>
+                <option value="satellite">Esri Satellite</option>
+                <option value="topo">Topographic</option>
+            </select>
             <label for="magnitude">Magnitude:</label>
             <select id="magnitude" multiple>
                 <option value="3">3.0+</option>
@@ -117,6 +123,28 @@
                 `);
             });
         }
+
+    var layers = {
+        "osm": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }),
+        "satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; Esri'
+        }),
+        "topo": L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenTopoMap'
+        })
+    };
+
+    // Set initial layer
+    var currentLayer = layers["osm"];
+    currentLayer.addTo(map);
+
+    document.getElementById("mapStyle").addEventListener("change", function(event) {
+        map.removeLayer(currentLayer);
+        currentLayer = layers[event.target.value];
+        currentLayer.addTo(map);
+    });
 
         function applyFilters() {
             let magnitudeSelection = Array.from(document.getElementById("magnitude").selectedOptions).map(opt => +opt.value);
