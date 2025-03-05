@@ -7,51 +7,253 @@
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <style>
-        #map { height: 600px; margin-bottom: 10px; }
-        .controls {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 10px;
-            max-width: 400px;
-        }
-        label, select, input, button {
-            font-size: 14px;
-            padding: 5px;
-        }
-    </style>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <h1>Earthquake Visualization (2024-2025)</h1>
-    <div class="controls">
-        <label for="magnitude">Magnitude:</label>
-        <select id="magnitude" multiple>
-            <option value="3">3.0+</option>
-            <option value="4">4.0+</option>
-            <option value="5">5.0+</option>
-            <option value="6">6.0+</option>
-            <option value="7">7.0+</option>
-        </select>
-        
-        <label for="depth">Depth Range (km):</label>
-        <input type="range" id="depth" min="0" max="700" step="10">
-        
-        <label for="timeRange">Time Range:</label>
-        <input type="date" id="startTime">
-        <input type="date" id="endTime">
+    <div class="container">
+        <div class="controls">
+            <label for="magnitude">Magnitude:</label>
+            <select id="magnitude" multiple>
+                <option value="3">3.0+</option>
+                <option value="4">4.0+</option>
+                <option value="5">5.0+</option>
+                <option value="6">6.0+</option>
+                <option value="7">7.0+</option>
+            </select>
 
-        <button onclick="applyFilters()">Apply Filters</button>
-        <button onclick="resetFilters()">Reset</button>
+            <label for="depth">Depth Range (km):</label>
+            <input type="range" id="depth" min="0" max="700" step="10">
+
+            <label for="timeRange">Time Range:</label>
+            <input type="date" id="startTime">
+            <input type="date" id="endTime">
+
+            <button onclick="applyFilters()">Apply Filters</button>
+            <button onclick="resetFilters()">Reset</button>
+
+            <h3>Animation Controls</h3>
+            <label for="speed">Speed (ms per day):</label>
+            <input type="number" id="speed" value="500">
+            <button onclick="startAnimationUI()">Start Animation</button>
+            <button onclick="stopAnimation()">Stop Animation</button>
+        </div>
         
-        <h3>Animation Controls</h3>
-        <label for="speed">Speed (ms per day):</label>
-        <input type="number" id="speed" value="500">
-        <button onclick="startAnimationUI()">Start Animation</button>
-        <button onclick="stopAnimation()">Stop Animation</button>
+        <div id="map"></div>
     </div>
-    
-    <div id="map"></div>
-    <script src="js/main.js"></script>
+
+    <div class="visualizations">
+        <h2>Earthquake Data Visualizations</h2>
+        <div id="magnitudeChart"></div>
+        <div id="durationChart"></div>
+        <div id="depthChart"></div>
+    </div>
+
+    <script>
+        var map = L.map('map').setView([20, 0], 2);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        let earthquakeData = [];
+
+        async function loadEarthquakeData() {
+            const data = await d3.csv("data/query.csv");
+            data.forEach(d => {
+                d.latitude = +d.latitude;
+                d.longitude = +d.longitude;
+                d.magnitude = +d.mag;
+                d.depth = +d.depth;
+                d.time = new Date(d.time);
+            });
+            earthquakeData = data;
+            updateVisualization();
+            updateCharts();
+        }
+
+        var colorScale = d3.scaleSequential(d3.interpolateReds)
+            .domain([3, 8]);
+
+        function updateVisualization(filters = {}) {
+            map.eachLayer(layer => {
+                if (layer instanceof L.CircleMarker) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            let filteredData = earthquakeData.filter(d => {
+                return (!filters.magnitude || filters.magnitude.includes(d.magnitude)) &&
+                    (!filters.startTime || d.time >= filters.startTime) &&
+                    (!filters.endTime || d.time <= filters.endTime) &&
+                    (!filters.depth || d.depth >= filters.depth[0] && d.depth <= filters.depth[1]);
+            });
+
+            filteredData.forEach(d => {
+                L.circleMarker([d.latitude, d.longitude], {
+                    radius: d.magnitude * 2,
+                    fillColor: colorScale(d.magnitude),
+                    color: "#000",
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map)
+                .bindPopup(`
+                    <strong>Location:</strong> ${d.place} <br>
+                    <strong>Magnitude:</strong> ${d.magnitude} <br>
+                    <strong>Depth:</strong> ${d.depth} km <br>
+                    <strong>Time:</strong> ${d.time.toUTCString()}
+                `);
+            });
+        }
+
+        function applyFilters() {
+            let magnitudeSelection = Array.from(document.getElementById("magnitude").selectedOptions).map(opt => +opt.value);
+            let depthValue = document.getElementById("depth").value;
+            let startTime = document.getElementById("startTime").value ? new Date(document.getElementById("startTime").value) : null;
+            let endTime = document.getElementById("endTime").value ? new Date(document.getElementById("endTime").value) : null;
+
+            updateVisualization({
+                magnitude: magnitudeSelection.length ? magnitudeSelection : null,
+                depth: depthValue ? [0, +depthValue] : null,
+                startTime: startTime,
+                endTime: endTime
+            });
+            updateCharts();
+        }
+
+        function resetFilters() {
+            document.getElementById("magnitude").selectedIndex = -1;
+            document.getElementById("depth").value = 0;
+            document.getElementById("startTime").value = "";
+            document.getElementById("endTime").value = "";
+            updateVisualization();
+            updateCharts();
+        }
+
+        let animationInterval;
+        let accumulatedData = [];
+
+        function startAnimation(startTime, endTime, speed) {
+            let currentTime = new Date(startTime);
+            accumulatedData = [];
+            clearInterval(animationInterval);
+            animationInterval = setInterval(() => {
+                if (currentTime > endTime) {
+                    clearInterval(animationInterval);
+                    return;
+                }
+                accumulatedData = earthquakeData.filter(d => d.time <= currentTime);
+                updateVisualization({ startTime: startTime, endTime: currentTime });
+                currentTime.setUTCDate(currentTime.getUTCDate() + 1);
+            }, speed);
+        }
+
+        function startAnimationUI() {
+            let startTime = new Date(document.getElementById("startTime").value);
+            let endTime = new Date(document.getElementById("endTime").value);
+            let speed = document.getElementById("speed").value;
+
+            if (!startTime || !endTime || isNaN(startTime) || isNaN(endTime)) {
+                alert("Please select a valid time range.");
+                return;
+            }
+
+            startAnimation(startTime, endTime, speed);
+        }
+
+        function stopAnimation() {
+            clearInterval(animationInterval);
+        }
+
+        function updateCharts() {
+            // Clear existing charts
+            d3.select("#magnitudeChart").html("");
+            d3.select("#durationChart").html("");
+            d3.select("#depthChart").html("");
+
+            // Magnitude Chart
+            let magnitudeData = d3.rollup(earthquakeData, v => v.length, d => d.magnitude);
+            let magnitudeChart = d3.select("#magnitudeChart")
+                .append("svg")
+                .attr("width", 400)
+                .attr("height", 300);
+
+            let xScale = d3.scaleBand()
+                .domain(Array.from(magnitudeData.keys()))
+                .range([0, 400])
+                .padding(0.1);
+
+            let yScale = d3.scaleLinear()
+                .domain([0, d3.max(magnitudeData.values())])
+                .range([300, 0]);
+
+            magnitudeChart.selectAll(".bar")
+                .data(Array.from(magnitudeData.entries()))
+                .enter()
+                .append("rect")
+                .attr("class", "bar")
+                .attr("x", d => xScale(d[0]))
+                .attr("y", d => yScale(d[1]))
+                .attr("width", xScale.bandwidth())
+                .attr("height", d => 300 - yScale(d[1]))
+                .attr("fill", d => colorScale(d[0]));
+
+            // Duration Chart
+            let durationData = d3.rollup(earthquakeData, v => v.length, d => d3.timeMonth(d.time));
+            let durationChart = d3.select("#durationChart")
+                .append("svg")
+                .attr("width", 400)
+                .attr("height", 300);
+
+            let xScaleDuration = d3.scaleTime()
+                .domain(d3.extent(earthquakeData, d => d.time))
+                .range([0, 400]);
+
+            let yScaleDuration = d3.scaleLinear()
+                .domain([0, d3.max(durationData.values())])
+                .range([300, 0]);
+
+            durationChart.selectAll(".bar")
+                .data(Array.from(durationData.entries()))
+                .enter()
+                .append("rect")
+                .attr("class", "bar")
+                .attr("x", d => xScaleDuration(d[0]))
+                .attr("y", d => yScaleDuration(d[1]))
+                .attr("width", 10)
+                .attr("height", d => 300 - yScaleDuration(d[1]))
+                .attr("fill", "steelblue");
+
+            // Depth Chart
+            let depthData = d3.rollup(earthquakeData, v => v.length, d => Math.floor(d.depth / 50) * 50);
+            let depthChart = d3.select("#depthChart")
+                .append("svg")
+                .attr("width", 400)
+                .attr("height", 300);
+
+            let xScaleDepth = d3.scaleBand()
+                .domain(Array.from(depthData.keys()))
+                .range([0, 400])
+                .padding(0.1);
+
+            let yScaleDepth = d3.scaleLinear()
+                .domain([0, d3.max(depthData.values())])
+                .range([300, 0]);
+
+            depthChart.selectAll(".bar")
+                .data(Array.from(depthData.entries()))
+                .enter()
+                .append("rect")
+                .attr("class", "bar")
+                .attr("x", d => xScaleDepth(d[0]))
+                .attr("y", d => yScaleDepth(d[1]))
+                .attr("width", xScaleDepth.bandwidth())
+                .attr("height", d => 300 - yScaleDepth(d[1]))
+                .attr("fill", "orange");
+        }
+
+        loadEarthquakeData();
+    </script>
 </body>
 </html>
