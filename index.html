@@ -314,7 +314,16 @@ function resetFilters() {
         const innerHeight = height - margin.top - margin.bottom;
 
         // Magnitude Chart
-        let magnitudeData = d3.rollup(earthquakeData, v => v.length, d => d.magnitude);
+        let magnitudeData = earthquakeData.map(d => d.magnitude);
+        console.log("Magnitude Data:", magnitudeData);
+
+        // Define binning function
+        let histogram = d3.histogram()
+            .domain([d3.min(magnitudeData), d3.max(magnitudeData)]) // Min and max range
+            .thresholds(d3.range(0, d3.max(magnitudeData) + 0.5, 0.5)); // Bin size of 0.5
+
+        let bins = histogram(magnitudeData); // Compute bins
+
         let magnitudeChart = d3.select("#magnitudeChart")
             .append("svg")
             .attr("width", width)
@@ -323,32 +332,32 @@ function resetFilters() {
             .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
         let xScale = d3.scaleBand()
-            .domain(Array.from(magnitudeData.keys()))
+            .domain(bins.map(d => d.x0)) // Bin start values as categories
             .range([0, innerWidth])
             .padding(0.1);
 
         let yScale = d3.scaleLinear()
-            .domain([0, d3.max(magnitudeData.values())])
+            .domain([0, d3.max(bins, d => d.length)]) // Count of earthquakes per bin
             .range([innerHeight, 0]);
 
         magnitudeChart.selectAll(".bar")
-            .data(Array.from(magnitudeData.entries()))
+            .data(bins)
             .enter()
             .append("rect")
             .attr("class", "bar")
-            .attr("x", d => xScale(d[0]))
-            .attr("y", d => yScale(d[1]))
+            .attr("x", d => xScale(d.x0))
+            .attr("y", d => yScale(d.length))
             .attr("width", xScale.bandwidth())
-            .attr("height", d => innerHeight - yScale(d[1]))
-            .attr("fill", d => colorScale(d[0]));
+            .attr("height", d => innerHeight - yScale(d.length))
+            .attr("fill", "steelblue");
 
         // Add X and Y Axes
         magnitudeChart.append("g")
             .attr("transform", `translate(0, ${innerHeight})`)
-            .call(d3.axisBottom(xScale));
+            .call(d3.axisBottom(xScale).tickFormat(d3.format(".1f"))); // Format as 1 decimal place
 
         magnitudeChart.append("g")
-            .call(d3.axisLeft(yScale));
+            .call(d3.axisLeft(yScale).ticks(5));
 
         // Duration Chart
         earthquakeData.forEach(d => d.time = new Date(d.time));
