@@ -315,7 +315,6 @@ function resetFilters() {
 
         // Magnitude Chart
         let magnitudeData = earthquakeData.map(d => d.magnitude);
-        console.log("Magnitude Data:", magnitudeData);
 
         // Define binning function
         let histogram = d3.histogram()
@@ -372,8 +371,6 @@ function resetFilters() {
         // Convert rollup map to sorted array
         let durationArray = Array.from(durationData, ([key, value]) => ({ date: key, count: value }))
             .sort((a, b) => d3.ascending(a.date, b.date));
-
-        console.log("Processed duration data:", durationArray);
 
         let durationChart = d3.select("#durationChart")
             .append("svg")
