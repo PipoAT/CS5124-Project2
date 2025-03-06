@@ -32,11 +32,15 @@
             <input type="number" id="magnitudeValue1" placeholder="Enter value" min="1" max="8">
             <input type="number" id="magnitudeValue2" placeholder="Enter second value" style="display: none;" min="1" max="8">            
 
-            <div class="slider-container">
-                <label for="depth">Depth Range (km):</label>
-                <input type="range" id="depth" min="0" max="700" step="10" value="350">
-                <span id="tooltip" class="tooltip">350 km</span>
-            </div>
+            <label for="depth">Depth:</label>
+            <select id="depthFilter" name="depthFilter">
+                <option value="greater">Greater than</option>
+                <option value="less">Less than</option>
+                <option value="between">Between</option>
+            </select>
+
+            <input type="number" id="depthValue1" placeholder="Enter value" min="-10" max="660">
+            <input type="number" id="depthValue2" placeholder="Enter second value" style="display: none;" min="-10" max="660">
 
             <label for="timeRange">Time Range:</label>
             <input type="date" id="startTime">
@@ -125,6 +129,23 @@
                     }
                 }
 
+                // Depth filtering
+                let isDepthValid = true;
+                if (filters.depth) {
+                    const [minDepth, maxDepth] = filters.depth;
+
+                    if (minDepth && maxDepth) {
+                        // Between
+                        isDepthValid = d.depth >= minDepth && d.depth <= maxDepth;
+                    } else if (minDepth) {
+                        // Greater than
+                        isDepthValid = d.depth > minDepth;
+                    } else if (maxDepth) {
+                        // Less than
+                        isDepthValid = d.depth < maxDepth;
+                    }
+                }
+
                 // Apply the rest of the filters
                 return isMagnitudeValid &&
                     (!filters.startTime || d.time >= filters.startTime) &&
@@ -178,7 +199,7 @@
             currentLayer.addTo(map);
         });
 
-        // Function to handle the dropdown change
+        // Function to handle the dropdown change for magnitude 
         document.getElementById('magnitudeFilter').addEventListener('change', function() {
             const value2Input = document.getElementById('magnitudeValue2');
             if (this.value === 'between') {
@@ -188,30 +209,15 @@
             }
         });
 
-        // Depth tool tip
-        const depthSlider = document.getElementById("depth");
-        const tooltip = document.getElementById("tooltip");
-
-        function updateTooltip() {
-            const value = depthSlider.value;
-            tooltip.textContent = `${value} km`;
-
-            // Position the tooltip above the thumb
-            const sliderRect = depthSlider.getBoundingClientRect();
-            const thumbPosition = ((value - depthSlider.min) / (depthSlider.max - depthSlider.min)) * sliderRect.width;
-
-            tooltip.style.left = `${thumbPosition}px`; // Position based on thumb
-            tooltip.style.opacity = 1; // Show tooltip
-        }
-
-        // Update on input
-        depthSlider.addEventListener("input", updateTooltip);
-
-        // Hide tooltip when not hovering the slider
-        depthSlider.addEventListener("mouseenter", () => tooltip.style.opacity = 1);
-        depthSlider.addEventListener("mouseleave", () => tooltip.style.opacity = 0);
-
-        updateTooltip(); // Initialize position on page load
+        // Function to handle the dropdown change for depth 
+        document.getElementById('depthFilter').addEventListener('change', function() {
+            const value2Input = document.getElementById('depthValue2');
+            if (this.value === 'between') {
+                value2Input.style.display = 'inline';  // Show second input for "Between"
+            } else {
+                value2Input.style.display = 'none';  // Hide second input for other options
+            }
+        });
 
         // Apply filter
         function applyFilters() {
@@ -248,23 +254,41 @@
                 magnitudeRange = [magnitude1, magnitude2];  // Between magnitude1 and magnitude2
             }
 
+            // Get depth filter type
+            const depthFilter = document.getElementById("depthFilter").value;
+            let depthRange = null;
+
+            const depth1 = parseFloat(document.getElementById("depthValue1").value);
+            let depth2 = parseFloat(document.getElementById("depthValue2").value);
+
+            // Validate depth range
+            if (isNaN(depth1) || depth1 < -10 || depth1 > 660) {
+                alert("Please enter a valid depth between -10 and 660.");
+                return;
+            }
+
+            if (depthFilter === "between") {
+                if (isNaN(depth2) || depth2 < -10 || depth2 > 660) {
+                    alert("Please enter a valid second depth between -10 and 660.");
+                    return;
+                }
+            }
+
+            // Apply depth filter logic
+            if (depthFilter === "greater" && !isNaN(depth1)) {
+                depthRange = [depth1, 660];  // Greater than depth1 and less than or equal to 660
+            } else if (depthFilter === "less" && !isNaN(depth1)) {
+                depthRange = [-10, depth1];  // Greater than or equal to -10 and less than depth1
+            } else if (depthFilter === "between" && !isNaN(depth1) && !isNaN(depth2)) {
+                if (depth1 > depth2) {
+                    [depth1, depth2] = [depth2, depth1];  // Swap to ensure lower value is first
+                }
+                depthRange = [depth1, depth2];  // Between depth1 and depth2
+            }
+
             // Other filter values
-            let depthValue = document.getElementById("depth").value.trim();
             let startTime = document.getElementById("startTime").value ? new Date(document.getElementById("startTime").value) : null;
             let endTime = document.getElementById("endTime").value ? new Date(document.getElementById("endTime").value) : null;
-
-            // Compute min and max depth
-            let minDepth = Math.min(...earthquakeData.map(d => d.depth));
-            let maxDepth = Math.max(...earthquakeData.map(d => d.depth));
-
-            // Apply depth filter only if depthValue is valid
-            let depthRange = null;
-            if (depthValue && !isNaN(depthValue)) {
-                depthRange = [minDepth, +maxDepth];
-            } else {
-                // No depth filter applied
-                depthRange = [minDepth, maxDepth];
-            }
 
             // Apply the filters
             updateVisualization({
@@ -282,7 +306,10 @@
             document.getElementById("magnitudeValue2").value = "";
             document.getElementById("magnitudeFilter").value = "greater";  // Default to "Greater than"
             document.getElementById("magnitudeValue2").style.display = "none";
-            document.getElementById("depth").value = 350;
+            document.getElementById("depthValue1").value = "";
+            document.getElementById("depthValue2").value = "";
+            document.getElementById("depthFilter").value = "greater";  // Default to "Greater than"
+            document.getElementById("depthValue2").style.display = "none";
             document.getElementById("startTime").value = "";
             document.getElementById("endTime").value = "";
             // Reset the map layer
@@ -293,7 +320,6 @@
             // document.getElementById("speed").value = 500;
             updateVisualization();
             updateCharts();
-            updateTooltip();
         }
 
         let animationInterval;
