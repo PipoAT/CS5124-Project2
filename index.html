@@ -156,145 +156,145 @@
             });
         }
 
-    var layers = {
-        "osm": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }),
-        "satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: '&copy; Esri'
-        }),
-        "topo": L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenTopoMap'
-        })
-    };
+        var layers = {
+            "osm": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }),
+            "satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '&copy; Esri'
+            }),
+            "topo": L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenTopoMap'
+            })
+        };
 
-    // Set initial layer
-    var currentLayer = layers["osm"];
-    currentLayer.addTo(map);
-
-    document.getElementById("mapStyle").addEventListener("change", function(event) {
-        map.removeLayer(currentLayer);
-        currentLayer = layers[event.target.value];
+        // Set initial layer
+        var currentLayer = layers["osm"];
         currentLayer.addTo(map);
-    });
 
-    // Function to handle the dropdown change
-    document.getElementById('magnitudeFilter').addEventListener('change', function() {
-        const value2Input = document.getElementById('magnitudeValue2');
-        if (this.value === 'between') {
-            value2Input.style.display = 'inline';  // Show second input for "Between"
-        } else {
-            value2Input.style.display = 'none';  // Hide second input for other options
-        }
-    });
-
-    // Depth tool tip
-    const depthSlider = document.getElementById("depth");
-    const tooltip = document.getElementById("tooltip");
-
-    function updateTooltip() {
-        const value = depthSlider.value;
-        tooltip.textContent = `${value} km`;
-
-        // Position the tooltip above the thumb
-        const sliderRect = depthSlider.getBoundingClientRect();
-        const thumbPosition = ((value - depthSlider.min) / (depthSlider.max - depthSlider.min)) * sliderRect.width;
-
-        tooltip.style.left = `${thumbPosition}px`; // Position based on thumb
-        tooltip.style.opacity = 1; // Show tooltip
-    }
-
-    // Update on input
-    depthSlider.addEventListener("input", updateTooltip);
-
-    // Hide tooltip when not hovering the slider
-    depthSlider.addEventListener("mouseenter", () => tooltip.style.opacity = 1);
-    depthSlider.addEventListener("mouseleave", () => tooltip.style.opacity = 0);
-
-    updateTooltip(); // Initialize position on page load
-
-        // Apply filter
-    function applyFilters() {
-        // Get the magnitude filter type from the dropdown
-        const magnitudeFilter = document.getElementById('magnitudeFilter').value;
-        let magnitudeRange = null;
-
-        // Get the selected values for magnitude
-        const magnitude1 = parseFloat(document.getElementById("magnitudeValue1").value);
-        let magnitude2 = parseFloat(document.getElementById("magnitudeValue2").value);
-
-        // Validate magnitude range
-        if (isNaN(magnitude1) || magnitude1 < 1 || magnitude1 > 8) {
-            alert("Please enter a valid magnitude between 1 and 8.");
-            return;
-        }
-
-        if (magnitudeFilter === "between") {
-            if (isNaN(magnitude2) || magnitude2 < 1 || magnitude2 > 8) {
-                alert("Please enter a valid second magnitude between 1 and 8.");
-                return;
-            }
-        }
-
-        // Apply the filter based on the selected dropdown option
-        if (magnitudeFilter === "greater" && !isNaN(magnitude1)) {
-            magnitudeRange = [magnitude1, 8];  // Greater than magnitude1 and less than or equal to 8
-        } else if (magnitudeFilter === "less" && !isNaN(magnitude1)) {
-            magnitudeRange = [1, magnitude1];  // Greater than or equal to 1 and less than magnitude1
-        } else if (magnitudeFilter === "between" && !isNaN(magnitude1) && !isNaN(magnitude2)) {
-            if (magnitude1 > magnitude2) {
-                [magnitude1, magnitude2] = [magnitude2, magnitude1];  // Swap to ensure lower value is first
-            }
-            magnitudeRange = [magnitude1, magnitude2];  // Between magnitude1 and magnitude2
-        }
-
-        // Other filter values
-        let depthValue = document.getElementById("depth").value.trim();
-        let startTime = document.getElementById("startTime").value ? new Date(document.getElementById("startTime").value) : null;
-        let endTime = document.getElementById("endTime").value ? new Date(document.getElementById("endTime").value) : null;
-
-        // Compute min and max depth
-        let minDepth = Math.min(...earthquakeData.map(d => d.depth));
-        let maxDepth = Math.max(...earthquakeData.map(d => d.depth));
-
-        // Apply depth filter only if depthValue is valid
-        let depthRange = null;
-        if (depthValue && !isNaN(depthValue)) {
-            depthRange = [minDepth, +maxDepth];
-        } else {
-            // No depth filter applied
-            depthRange = [minDepth, maxDepth];
-        }
-
-        // Apply the filters
-        updateVisualization({
-            magnitude: magnitudeRange,
-            depth: depthRange,
-            startTime: startTime,
-            endTime: endTime
+        document.getElementById("mapStyle").addEventListener("change", function(event) {
+            map.removeLayer(currentLayer);
+            currentLayer = layers[event.target.value];
+            currentLayer.addTo(map);
         });
 
-        updateCharts();
-    }
+        // Function to handle the dropdown change
+        document.getElementById('magnitudeFilter').addEventListener('change', function() {
+            const value2Input = document.getElementById('magnitudeValue2');
+            if (this.value === 'between') {
+                value2Input.style.display = 'inline';  // Show second input for "Between"
+            } else {
+                value2Input.style.display = 'none';  // Hide second input for other options
+            }
+        });
 
-function resetFilters() {
-    document.getElementById("magnitudeValue1").value = "";
-    document.getElementById("magnitudeValue2").value = "";
-    document.getElementById("magnitudeFilter").value = "greater";  // Default to "Greater than"
-    document.getElementById("magnitudeValue2").style.display = "none";
-    document.getElementById("depth").value = 350;
-    document.getElementById("startTime").value = "";
-    document.getElementById("endTime").value = "";
-    // Reset the map layer
-    document.getElementById("mapStyle").value = "osm";
-    map.removeLayer(currentLayer);
-    currentLayer = layers["osm"]; // Ensure "osm" exists in your layers object
-    currentLayer.addTo(map);
-    // document.getElementById("speed").value = 500;
-    updateVisualization();
-    updateCharts();
-    updateTooltip();
-}
+        // Depth tool tip
+        const depthSlider = document.getElementById("depth");
+        const tooltip = document.getElementById("tooltip");
+
+        function updateTooltip() {
+            const value = depthSlider.value;
+            tooltip.textContent = `${value} km`;
+
+            // Position the tooltip above the thumb
+            const sliderRect = depthSlider.getBoundingClientRect();
+            const thumbPosition = ((value - depthSlider.min) / (depthSlider.max - depthSlider.min)) * sliderRect.width;
+
+            tooltip.style.left = `${thumbPosition}px`; // Position based on thumb
+            tooltip.style.opacity = 1; // Show tooltip
+        }
+
+        // Update on input
+        depthSlider.addEventListener("input", updateTooltip);
+
+        // Hide tooltip when not hovering the slider
+        depthSlider.addEventListener("mouseenter", () => tooltip.style.opacity = 1);
+        depthSlider.addEventListener("mouseleave", () => tooltip.style.opacity = 0);
+
+        updateTooltip(); // Initialize position on page load
+
+        // Apply filter
+        function applyFilters() {
+            // Get the magnitude filter type from the dropdown
+            const magnitudeFilter = document.getElementById('magnitudeFilter').value;
+            let magnitudeRange = null;
+
+            // Get the selected values for magnitude
+            const magnitude1 = parseFloat(document.getElementById("magnitudeValue1").value);
+            let magnitude2 = parseFloat(document.getElementById("magnitudeValue2").value);
+
+            // Validate magnitude range
+            if (isNaN(magnitude1) || magnitude1 < 1 || magnitude1 > 8) {
+                alert("Please enter a valid magnitude between 1 and 8.");
+                return;
+            }
+
+            if (magnitudeFilter === "between") {
+                if (isNaN(magnitude2) || magnitude2 < 1 || magnitude2 > 8) {
+                    alert("Please enter a valid second magnitude between 1 and 8.");
+                    return;
+                }
+            }
+
+            // Apply the filter based on the selected dropdown option
+            if (magnitudeFilter === "greater" && !isNaN(magnitude1)) {
+                magnitudeRange = [magnitude1, 8];  // Greater than magnitude1 and less than or equal to 8
+            } else if (magnitudeFilter === "less" && !isNaN(magnitude1)) {
+                magnitudeRange = [1, magnitude1];  // Greater than or equal to 1 and less than magnitude1
+            } else if (magnitudeFilter === "between" && !isNaN(magnitude1) && !isNaN(magnitude2)) {
+                if (magnitude1 > magnitude2) {
+                    [magnitude1, magnitude2] = [magnitude2, magnitude1];  // Swap to ensure lower value is first
+                }
+                magnitudeRange = [magnitude1, magnitude2];  // Between magnitude1 and magnitude2
+            }
+
+            // Other filter values
+            let depthValue = document.getElementById("depth").value.trim();
+            let startTime = document.getElementById("startTime").value ? new Date(document.getElementById("startTime").value) : null;
+            let endTime = document.getElementById("endTime").value ? new Date(document.getElementById("endTime").value) : null;
+
+            // Compute min and max depth
+            let minDepth = Math.min(...earthquakeData.map(d => d.depth));
+            let maxDepth = Math.max(...earthquakeData.map(d => d.depth));
+
+            // Apply depth filter only if depthValue is valid
+            let depthRange = null;
+            if (depthValue && !isNaN(depthValue)) {
+                depthRange = [minDepth, +maxDepth];
+            } else {
+                // No depth filter applied
+                depthRange = [minDepth, maxDepth];
+            }
+
+            // Apply the filters
+            updateVisualization({
+                magnitude: magnitudeRange,
+                depth: depthRange,
+                startTime: startTime,
+                endTime: endTime
+            });
+
+            updateCharts();
+        }
+
+        function resetFilters() {
+            document.getElementById("magnitudeValue1").value = "";
+            document.getElementById("magnitudeValue2").value = "";
+            document.getElementById("magnitudeFilter").value = "greater";  // Default to "Greater than"
+            document.getElementById("magnitudeValue2").style.display = "none";
+            document.getElementById("depth").value = 350;
+            document.getElementById("startTime").value = "";
+            document.getElementById("endTime").value = "";
+            // Reset the map layer
+            document.getElementById("mapStyle").value = "osm";
+            map.removeLayer(currentLayer);
+            currentLayer = layers["osm"]; // Ensure "osm" exists in your layers object
+            currentLayer.addTo(map);
+            // document.getElementById("speed").value = 500;
+            updateVisualization();
+            updateCharts();
+            updateTooltip();
+        }
 
         let animationInterval;
         let accumulatedData = [];
