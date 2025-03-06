@@ -61,10 +61,22 @@
 
     <div class="visualizations">
         <h2>Earthquake Data Visualizations</h2>
-        <div id="magnitudeChart"></div>
-        <div id="durationChart"></div>
-        <div id="depthChart"></div>
-    </div>
+        
+        <div class="chart-container">
+            <h3 class="chart-title">Magnitude Chart</h3>
+            <div id="magnitudeChart"></div>
+        </div>
+        
+        <div class="chart-container">
+            <h3 class="chart-title">Duration Chart</h3>
+            <div id="durationChart"></div>
+        </div>
+        
+        <div class="chart-container">
+            <h3 class="chart-title">Depth Chart</h3>
+            <div id="depthChart"></div>
+        </div>
+    </div>    
 
     <script>
         var map = L.map('map', {

@@ -33,3 +33,16 @@ label, select, input, button {
     height: 600px;
     flex: 1;
 }
+.visualizations {
+    text-align: center;  /* Centers the h2 title */
+}
+
+.chart-container {
+    margin-top: 20px;
+}
+
+.chart-title {
+    text-align: center;  /* Centers the chart titles */
+    font-size: 1.2em;
+    margin-bottom: 10px;
+}
