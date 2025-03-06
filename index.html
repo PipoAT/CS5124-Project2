@@ -14,20 +14,23 @@
     <h1>Earthquake Visualization (2024-2025)</h1>
     <div class="container">
         <div class="controls">
+
             <label for="mapStyle">Map Style:</label>
             <select id="mapStyle">
                 <option value="osm">OpenStreetMap</option>
                 <option value="satellite">Esri Satellite</option>
                 <option value="topo">Topographic</option>
             </select>
+
             <label for="magnitude">Magnitude:</label>
-            <select id="magnitude" multiple>
-                <option value="3">3.0+</option>
-                <option value="4">4.0+</option>
-                <option value="5">5.0+</option>
-                <option value="6">6.0+</option>
-                <option value="7">7.0+</option>
+            <select id="magnitudeFilter" name="magnitudeFilter">
+                <option value="greater">Greater than</option>
+                <option value="less">Less than</option>
+                <option value="between">Between</option>
             </select>
+            
+            <input type="number" id="magnitudeValue1" placeholder="Enter value" min="4" max="8">
+            <input type="number" id="magnitudeValue2" placeholder="Enter second value" style="display: none;" min="4" max="8">            
 
             <label for="depth">Depth Range (km):</label>
             <input type="range" id="depth" min="0" max="700" step="10">
@@ -93,6 +96,7 @@
             .domain([3, 8]);
 
         function updateVisualization(filters = {}) {
+            // Remove any existing markers from the map
             map.eachLayer(layer => {
                 if (layer instanceof L.CircleMarker) {
                     map.removeLayer(layer);
@@ -100,12 +104,37 @@
             });
 
             let filteredData = earthquakeData.filter(d => {
-                return (!filters.magnitude || filters.magnitude.includes(d.magnitude)) &&
+                // Magnitude filtering based on the selected filter type
+                let isMagnitudeValid = true;
+
+                if (filters.magnitude) {
+                    const [minMag, maxMag] = filters.magnitude;
+
+                    if (minMag && maxMag) {
+                        // Between
+                        isMagnitudeValid = d.magnitude >= minMag && d.magnitude <= maxMag;
+                    } else if (minMag) {
+                        // Greater than
+                        isMagnitudeValid = d.magnitude > minMag;
+                    } else if (maxMag) {
+                        // Less than
+                        isMagnitudeValid = d.magnitude < maxMag;
+                    }
+                }
+
+                // Apply the rest of the filters
+                return isMagnitudeValid &&
                     (!filters.startTime || d.time >= filters.startTime) &&
                     (!filters.endTime || d.time <= filters.endTime) &&
                     (!filters.depth || d.depth >= filters.depth[0] && d.depth <= filters.depth[1]);
             });
 
+            // If no data matches the filters, you might want to show a message
+            if (filteredData.length === 0) {
+                console.log('No data matches the current filters.');
+            }
+
+            // Loop through filtered data and add markers to the map
             filteredData.forEach(d => {
                 L.circleMarker([d.latitude, d.longitude], {
                     radius: d.magnitude * 2,
@@ -146,29 +175,84 @@
         currentLayer.addTo(map);
     });
 
-        function applyFilters() {
-            let magnitudeSelection = Array.from(document.getElementById("magnitude").selectedOptions).map(opt => +opt.value);
-            let depthValue = document.getElementById("depth").value;
-            let startTime = document.getElementById("startTime").value ? new Date(document.getElementById("startTime").value) : null;
-            let endTime = document.getElementById("endTime").value ? new Date(document.getElementById("endTime").value) : null;
+        // Function to handle the dropdown change
+document.getElementById('magnitudeFilter').addEventListener('change', function() {
+    const value2Input = document.getElementById('magnitudeValue2');
+    if (this.value === 'between') {
+        value2Input.style.display = 'inline';  // Show second input for "Between"
+    } else {
+        value2Input.style.display = 'none';  // Hide second input for other options
+    }
+});
 
-            updateVisualization({
-                magnitude: magnitudeSelection.length ? magnitudeSelection : null,
-                depth: depthValue ? [0, +depthValue] : null,
-                startTime: startTime,
-                endTime: endTime
-            });
-            updateCharts();
-        }
+function applyFilters() {
+    // Get the magnitude filter type from the dropdown
+    const magnitudeFilter = document.getElementById('magnitudeFilter').value;
+    let magnitudeRange = null;
 
-        function resetFilters() {
-            document.getElementById("magnitude").selectedIndex = -1;
-            document.getElementById("depth").value = 0;
-            document.getElementById("startTime").value = "";
-            document.getElementById("endTime").value = "";
-            updateVisualization();
-            updateCharts();
+    // Get the selected values for magnitude
+    const magnitude1 = parseFloat(document.getElementById("magnitudeValue1").value);
+    let magnitude2 = parseFloat(document.getElementById("magnitudeValue2").value);
+
+    // Apply the filter based on the selected dropdown option
+    if (magnitudeFilter === "greater" && !isNaN(magnitude1)) {
+        magnitudeRange = [magnitude1, 8];  // Greater than magnitude1 and less than or equal to 8
+    } else if (magnitudeFilter === "less" && !isNaN(magnitude1)) {
+        magnitudeRange = [4, magnitude1];  // Greater than or equal to 4 and less than magnitude1
+    } else if (magnitudeFilter === "between" && !isNaN(magnitude1) && !isNaN(magnitude2)) {
+        if (magnitude1 > magnitude2) {
+            [magnitude1, magnitude2] = [magnitude2, magnitude1];  // Swap to ensure lower value is first
         }
+        magnitudeRange = [magnitude1, magnitude2];  // Between magnitude1 and magnitude2
+    }
+
+    // Other filter values
+    let depthValue = document.getElementById("depth").value.trim();
+    let startTime = document.getElementById("startTime").value ? new Date(document.getElementById("startTime").value) : null;
+    let endTime = document.getElementById("endTime").value ? new Date(document.getElementById("endTime").value) : null;
+
+    // Compute min and max depth
+    let minDepth = Math.min(...earthquakeData.map(d => d.depth));
+    let maxDepth = Math.max(...earthquakeData.map(d => d.depth));
+
+    // Apply depth filter only if depthValue is valid
+    let depthRange = null;
+    if (depthValue && !isNaN(depthValue)) {
+        depthRange = [minDepth, +maxDepth];
+    } else {
+        // No depth filter applied
+        depthRange = [minDepth, maxDepth];
+    }
+
+    // Apply the filters
+    updateVisualization({
+        magnitude: magnitudeRange,
+        depth: depthRange,
+        startTime: startTime,
+        endTime: endTime
+    });
+
+    updateCharts();
+}
+
+
+function resetFilters() {
+    document.getElementById("magnitudeValue1").value = "";
+    document.getElementById("magnitudeValue2").value = "";
+    document.getElementById("magnitudeFilter").value = "greater";  // Default to "Greater than"
+    document.getElementById("magnitudeValue2").style.display = "none";
+    document.getElementById("depth").value = 350;
+    document.getElementById("startTime").value = "";
+    document.getElementById("endTime").value = "";
+    // Reset the map layer
+    document.getElementById("mapStyle").value = "osm";
+    map.removeLayer(currentLayer);
+    currentLayer = layers["osm"]; // Ensure "osm" exists in your layers object
+    currentLayer.addTo(map);
+    // document.getElementById("speed").value = 500;
+    updateVisualization();
+    updateCharts();
+}
 
         let animationInterval;
         let accumulatedData = [];
