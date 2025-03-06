@@ -29,8 +29,8 @@
                 <option value="between">Between</option>
             </select>
             
-            <input type="number" id="magnitudeValue1" placeholder="Enter value" min="4" max="8">
-            <input type="number" id="magnitudeValue2" placeholder="Enter second value" style="display: none;" min="4" max="8">            
+            <input type="number" id="magnitudeValue1" placeholder="Enter value" min="1" max="8">
+            <input type="number" id="magnitudeValue2" placeholder="Enter second value" style="display: none;" min="1" max="8">            
 
             <label for="depth">Depth Range (km):</label>
             <input type="range" id="depth" min="0" max="700" step="10">
@@ -194,11 +194,24 @@ function applyFilters() {
     const magnitude1 = parseFloat(document.getElementById("magnitudeValue1").value);
     let magnitude2 = parseFloat(document.getElementById("magnitudeValue2").value);
 
+    // Validate magnitude range
+    if (isNaN(magnitude1) || magnitude1 < 1 || magnitude1 > 8) {
+        alert("Please enter a valid magnitude between 1 and 8.");
+        return;
+    }
+
+    if (magnitudeFilter === "between") {
+        if (isNaN(magnitude2) || magnitude2 < 1 || magnitude2 > 8) {
+            alert("Please enter a valid second magnitude between 1 and 8.");
+            return;
+        }
+    }
+
     // Apply the filter based on the selected dropdown option
     if (magnitudeFilter === "greater" && !isNaN(magnitude1)) {
         magnitudeRange = [magnitude1, 8];  // Greater than magnitude1 and less than or equal to 8
     } else if (magnitudeFilter === "less" && !isNaN(magnitude1)) {
-        magnitudeRange = [4, magnitude1];  // Greater than or equal to 4 and less than magnitude1
+        magnitudeRange = [1, magnitude1];  // Greater than or equal to 1 and less than magnitude1
     } else if (magnitudeFilter === "between" && !isNaN(magnitude1) && !isNaN(magnitude2)) {
         if (magnitude1 > magnitude2) {
             [magnitude1, magnitude2] = [magnitude2, magnitude1];  // Swap to ensure lower value is first
@@ -234,7 +247,6 @@ function applyFilters() {
 
     updateCharts();
 }
-
 
 function resetFilters() {
     document.getElementById("magnitudeValue1").value = "";
