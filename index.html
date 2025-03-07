@@ -230,12 +230,19 @@
             .domain([3, 8]);
 
         let markers = {};  // Object to store markers by their id
+        let markersTwo = {};
 
         function updateVisualization(filters = {}) {
             // Remove any existing markers from the map
             map.eachLayer(layer => {
                 if (layer instanceof L.CircleMarker) {
                     map.removeLayer(layer);
+                }
+            });
+
+            lensMap.eachLayer(layer => {
+                if (layer instanceof L.CircleMarker) {
+                    lensMap.removeLayer(layer);
                 }
             });
 
@@ -306,6 +313,27 @@
 
                 // Store the marker by its id
                 markers[d.id] = marker;
+
+                // Attach click event for multi-selection
+                marker.on("click", event => handleEarthquakeClick(event, d, marker));
+
+                let markerTwo = L.circleMarker([d.latitude, d.longitude], {
+                    radius: d.magnitude * 2,
+                    fillColor: colorScale(d.magnitude),
+                    color: "#000",
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(lensMap)
+                .bindPopup(`
+                    <strong>Location:</strong> ${d.place} <br>
+                    <strong>Magnitude:</strong> ${d.magnitude} <br>
+                    <strong>Depth:</strong> ${d.depth} km <br>
+                    <strong>Time:</strong> ${d.time.toUTCString()}
+                `);
+
+                // Store the marker by its id
+                markersTwo[d.id] = markerTwo;
 
                 // Attach click event for multi-selection
                 marker.on("click", event => handleEarthquakeClick(event, d, marker));
