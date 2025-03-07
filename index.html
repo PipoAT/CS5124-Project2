@@ -126,6 +126,91 @@
 
 
         let earthquakeData = [];
+        let selectedEarthquakes = []; // To track selected earthquakes
+        let tooltip = d3.select("body").select(".tooltip");
+
+        // Select the tooltip element or create it if not already in the HTML
+        if (tooltip.empty()) {
+            tooltip = d3.select("body").append("div")
+                .attr("class", "tooltip")
+                .style("position", "absolute")
+                .style("background", "#333")
+                .style("color", "white")
+                .style("padding", "8px")
+                .style("border-radius", "5px")
+                .style("display", "none");
+        }
+
+        let isMultiSelect = false; // Track if the CTRL key is pressed
+        let selectionBox = null; // Hold reference to the selection rectangle
+        let startPoint = null; // Start point for the selection rectangle
+
+        // Enable multi-select when Ctrl is held down
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Control") {
+                isMultiSelect = true;
+                map.dragging.disable(); // Disable panning during multi-select
+                map.scrollWheelZoom.disable(); // Disable zoom when CTRL is held
+            }
+        });
+
+        // Re-enable panning when Ctrl is released
+        document.addEventListener("keyup", (event) => {
+            if (event.key === "Control") {
+                isMultiSelect = false;
+                map.dragging.enable(); // Enable panning when CTRL is released
+                map.scrollWheelZoom.enable(); // Enable zoom when CTRL is released
+            }
+        });
+
+        map.on("mousedown", (event) => {
+        if (isMultiSelect) {
+            // Start a new selection if CTRL is pressed
+            startPoint = event.latlng;
+            
+            // Create a new rectangle (L.rectangle) that will follow the mouse movement
+            selectionBox = L.rectangle([startPoint, startPoint], {
+                color: "#FF6600",
+                weight: 2,
+                fillOpacity: 0.1,
+            }).addTo(map);
+        }
+    });
+
+    map.on("mousemove", (event) => {
+        if (isMultiSelect && selectionBox) {
+            // Update the selection box while the mouse moves
+            let bounds = L.latLngBounds(startPoint, event.latlng);
+            selectionBox.setBounds(bounds);
+        }
+    });
+
+    map.on("mouseup", () => {
+        if (isMultiSelect && selectionBox) {
+            // When mouse is released, finalize the selection
+            const bounds = selectionBox.getBounds();
+            selectMarkersInBounds(bounds);
+            
+            // Remove the selection box after selection is done
+            map.removeLayer(selectionBox);
+            selectionBox = null;
+            startPoint = null;
+        }
+    });
+
+    function selectMarkersInBounds(bounds) {
+        // Loop through all markers and check if they are inside the selection bounds
+        earthquakeData.forEach(d => {
+            let markerLatLng = L.latLng(d.latitude, d.longitude);
+            if (bounds.contains(markerLatLng)) {
+                // If the marker is inside the bounds, select it
+                const marker = markers[d.id]; // Retrieve the marker from the markers object
+                if (marker) {
+                    handleEarthquakeClick(null, d, marker); // Trigger the click handler to select the marker
+                }
+            }
+        });
+    }
 
         async function loadEarthquakeData() {
             const data = await d3.csv("data/query.csv");
@@ -143,6 +228,8 @@
 
         var colorScale = d3.scaleSequential(d3.interpolateReds)
             .domain([3, 8]);
+
+        let markers = {};  // Object to store markers by their id
 
         function updateVisualization(filters = {}) {
             // Remove any existing markers from the map
@@ -202,7 +289,7 @@
 
             // Loop through filtered data and add markers to the map
             filteredData.forEach(d => {
-                L.circleMarker([d.latitude, d.longitude], {
+                let marker = L.circleMarker([d.latitude, d.longitude], {
                     radius: d.magnitude * 2,
                     fillColor: colorScale(d.magnitude),
                     color: "#000",
@@ -216,8 +303,80 @@
                     <strong>Depth:</strong> ${d.depth} km <br>
                     <strong>Time:</strong> ${d.time.toUTCString()}
                 `);
+
+                // Store the marker by its id
+                markers[d.id] = marker;
+
+                // Attach click event for multi-selection
+                marker.on("click", event => handleEarthquakeClick(event, d, marker));
             });
         }
+
+        // Function to update the tooltip with aggregated data from selected earthquakes
+        function updateTooltip() {
+            // Aggregate data from selected earthquakes
+            const numEarthquakes = selectedEarthquakes.length;
+            const avgMagnitude = numEarthquakes > 0 
+                ? selectedEarthquakes.reduce((acc, eq) => acc + (eq.magnitude || 0), 0) / numEarthquakes
+                : 0;
+            const avgDepth = numEarthquakes > 0 
+                ? selectedEarthquakes.reduce((acc, eq) => acc + (eq.depth || 0), 0) / numEarthquakes
+                : 0;
+
+            // Update tooltip content with aggregated data
+            tooltip.html(`
+                <strong>Selected Earthquakes:</strong> ${numEarthquakes}<br>
+                <strong>Avg Magnitude:</strong> ${avgMagnitude.toFixed(2)}<br>
+                <strong>Avg Depth:</strong> ${avgDepth.toFixed(2)} km
+            `)
+            .style("display", "block");
+        }
+
+        // Function to handle earthquake location click (multi-select behavior)
+        function handleEarthquakeClick(event, d, marker) {
+            if (!isMultiSelect) return; // Ignore clicks unless multi-select mode is active
+
+            // Check if earthquake is already selected
+            const earthquakeIndex = selectedEarthquakes.findIndex(eq => eq.id === d.id);
+
+            if (earthquakeIndex === -1) {
+                // Add earthquake to selected earthquakes if not already selected
+                selectedEarthquakes.push(d);
+                marker.setStyle({ color: "#FFD700", weight: 2 }); // Highlight selection
+            } else {
+                // Remove earthquake from selected earthquakes if already selected
+                selectedEarthquakes.splice(earthquakeIndex, 1);
+                marker.setStyle({ color: "#000", weight: 1 }); // Revert style
+            }
+
+            // Update tooltip with aggregated data
+            updateTooltip();
+
+            // Only update the tooltip if event is not null
+            if (event) {
+                console.log(event.originalEvent);
+                // Get the mouse event coordinates relative to the document
+                const mouseX = event.originalEvent.pageX;
+                const mouseY = event.originalEvent.pageY;
+
+                // Position the tooltip above the earthquake marker (adjusting the distance as needed)
+                tooltip.style("left", `${mouseX + 10}px`)  // Horizontal offset
+                    .style("top", `${mouseY - 40}px`)   // Vertical offset, above the pointer
+                    .classed("visible", true);           // Show the tooltip
+            }
+        }
+
+        // Attach the event listener to your earthquake locations (markers on the map)
+        d3.selectAll(".earthquake-marker") // Replace with your actual earthquake location elements
+            .on("click", handleEarthquakeClick);
+
+        // Hide tooltip when clicking outside
+        d3.select("body").on("click", () => {
+            tooltip.style("display", "none");
+            if (!isMultiSelect) {
+                map.dragging.enable(); // Restore panning if Ctrl is not held
+            }
+        });
 
         var layers = {
             "osm": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {

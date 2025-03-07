@@ -50,6 +50,21 @@ label, select, input, button {
     font-size: 1.2em;
     margin-bottom: 10px;
 }
+.tooltip {
+    position: absolute;
+    background: #333;
+    color: white;
+    padding: 8px;
+    border-radius: 5px;
+    display: none;
+    z-index: 1000; /* Ensure it's above other elements */
+    pointer-events: none; /* Prevent tooltip from interfering with interactions */
+}
+
+/* Optional: Apply a slight delay for tooltip visibility, if desired */
+.tooltip.visible {
+    display: block;
+}
 
 #lensMap {
     position: absolute;
