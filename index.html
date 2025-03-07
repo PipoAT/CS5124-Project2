@@ -55,6 +55,7 @@
             <button onclick="startAnimationUI()">Start Animation</button>
             <button onclick="stopAnimation()">Stop Animation</button>
         </div>
+        <div id="lensMap" style="width: 200px; height: 200px; position: absolute; top: 10px; right: 10px; border: 2px solid #000; z-index: 1000;"></div>
         
         <div id="map"></div>
     </div>
@@ -94,6 +95,35 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
+
+        var lensMap = L.map('lensMap', {
+            center: [20, 0],
+            zoom: 4,
+            zoomControl: false,
+            attributionControl: false
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(lensMap);
+
+        map.on('move', function() {
+            lensMap.setView(map.getCenter(), lensMap.getZoom());
+        });
+
+        map.on('zoom', function() {
+            lensMap.setView(map.getCenter(), map.getZoom() + 2);
+        });
+
+        // Remove lensMap event listeners to prevent infinite loop
+        // lensMap.on('move', function() {
+        //     map.setView(lensMap.getCenter(), map.getZoom());
+        // });
+
+        // lensMap.on('zoom', function() {
+        //     map.setView(lensMap.getCenter(), lensMap.getZoom() - 2);
+        // });
+
 
         let earthquakeData = [];
 
