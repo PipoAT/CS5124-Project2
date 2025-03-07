@@ -185,11 +185,11 @@
         }
     });
 
-    map.on("mouseup", () => {
+    map.on("mouseup", (event) => {
         if (isMultiSelect && selectionBox) {
             // When mouse is released, finalize the selection
             const bounds = selectionBox.getBounds();
-            selectMarkersInBounds(bounds);
+            selectMarkersInBounds(bounds, event);
             
             // Remove the selection box after selection is done
             map.removeLayer(selectionBox);
@@ -198,7 +198,11 @@
         }
     });
 
-    function selectMarkersInBounds(bounds) {
+    function selectMarkersInBounds(bounds, mapEvent) {
+        // Get the mouse coordinates from the map event
+        const mouseX = mapEvent.originalEvent.pageX;
+        const mouseY = mapEvent.originalEvent.pageY;
+
         // Loop through all markers and check if they are inside the selection bounds
         earthquakeData.forEach(d => {
             let markerLatLng = L.latLng(d.latitude, d.longitude);
@@ -206,7 +210,7 @@
                 // If the marker is inside the bounds, select it
                 const marker = markers[d.id]; // Retrieve the marker from the markers object
                 if (marker) {
-                    handleEarthquakeClick(null, d, marker); // Trigger the click handler to select the marker
+                    handleEarthquakeClick(mouseX, mouseY, d, marker); // Trigger the click handler to select the marker
                 }
             }
         });
@@ -361,15 +365,15 @@
         }
 
         // Function to handle earthquake location click (multi-select behavior)
-        function handleEarthquakeClick(event, d, marker) {
+        function handleEarthquakeClick(mouseX, mouseY, data, marker) {
             if (!isMultiSelect) return; // Ignore clicks unless multi-select mode is active
 
             // Check if earthquake is already selected
-            const earthquakeIndex = selectedEarthquakes.findIndex(eq => eq.id === d.id);
+            const earthquakeIndex = selectedEarthquakes.findIndex(eq => eq.id === data.id);
 
             if (earthquakeIndex === -1) {
                 // Add earthquake to selected earthquakes if not already selected
-                selectedEarthquakes.push(d);
+                selectedEarthquakes.push(data);
                 marker.setStyle({ color: "#FFD700", weight: 2 }); // Highlight selection
             } else {
                 // Remove earthquake from selected earthquakes if already selected
@@ -382,15 +386,16 @@
 
             // Only update the tooltip if event is not null
             if (event) {
-                console.log(event.originalEvent);
+                console.log(event);
                 // Get the mouse event coordinates relative to the document
-                const mouseX = event.originalEvent.pageX;
-                const mouseY = event.originalEvent.pageY;
+                const mouseX = event.pageX;
+                const mouseY = event.pageY;
 
-                // Position the tooltip above the earthquake marker (adjusting the distance as needed)
-                tooltip.style("left", `${mouseX + 10}px`)  // Horizontal offset
-                    .style("top", `${mouseY - 40}px`)   // Vertical offset, above the pointer
-                    .classed("visible", true);           // Show the tooltip
+                // Apply dynamic styles to the tooltip based on mouse position
+                tooltip.style("left", `${mouseX + 10}px`)   // Horizontal offset
+                    .style("top", `${mouseY - 40}px`)    // Vertical offset
+                    .style("display", "block")            // Make sure tooltip is shown
+                    .style("z-index", 1000);              // Ensure tooltip is above other elements
             }
         }
 
