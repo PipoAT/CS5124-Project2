@@ -139,6 +139,7 @@
         let isMultiSelect = false; // Track if the CTRL key is pressed
         let selectionBox = null; // Hold reference to the selection rectangle
         let startPoint = null; // Start point for the selection rectangle
+        let selectedMarkers = new Set(); // Track selected markers by their IDs
 
         // Enable multi-select when Ctrl is held down
         document.addEventListener("keydown", (event) => {
@@ -194,6 +195,8 @@
     });
 
     function selectMarkersInBounds(bounds, mapEvent) {
+        deselectAllMarkers(); // Ensure previous selections are cleared
+
         // Get the mouse coordinates from the map event
         const mouseX = mapEvent.originalEvent.pageX;
         const mouseY = mapEvent.originalEvent.pageY;
@@ -204,11 +207,32 @@
             if (bounds.contains(markerLatLng)) {
                 // If the marker is inside the bounds, select it
                 const marker = markers[d.id]; // Retrieve the marker from the markers object
-                if (marker) {
+                if (marker && !selectedMarkers.has(d.id)) {
                     handleEarthquakeClick(mouseX, mouseY, d, marker); // Trigger the click handler to select the marker
+                    selectedMarkers.add(d.id); // Add marker ID to the selected set
                 }
             }
         });
+    }
+
+    // Function to deselect all markers
+    function deselectAllMarkers() {
+        // Loop through selected markers and unselect them
+        selectedMarkers.forEach(markerId => {
+            const marker = markers[markerId]; // Retrieve the marker from the markers object
+            if (marker) {
+                // Deselect the marker by calling your deselect function (e.g., change color, remove class)
+                handleEarthquakeDeselect(marker); // Implement this to reset the marker's appearance
+            }
+        });
+        selectedEarthquakes.splice(0, selectedEarthquakes.length); // Clear selected earthquakes properly
+        selectedMarkers.clear(); // Clear the selected markers set
+    }
+
+    // Function to handle marker deselect (resetting appearance)
+    function handleEarthquakeDeselect(marker) {
+        marker.setStyle({ color: "#000", weight: 1 }); // Reset to default style
+        selectedEarthquakes.length = 0; // Clear the selected earthquakes array
     }
 
         async function loadEarthquakeData() {
@@ -391,6 +415,7 @@
                     .style("display", "block")            // Make sure tooltip is shown
                     .style("z-index", 1000);              // Ensure tooltip is above other elements
             }
+            
         }
 
         // Attach the event listener to your earthquake locations (markers on the map)
