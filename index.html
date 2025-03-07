@@ -619,7 +619,7 @@
 
         const width = 1400;
         const height = 300;
-        const margin = { top: 20, right: 20, bottom: 50, left: 50 }; // Added margins for axes
+        const margin = { top: 20, right: 60, bottom: 50, left: 60 }; // Added margins for axes
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
 
@@ -667,6 +667,23 @@
 
         magnitudeChart.append("g")
             .call(d3.axisLeft(yScale).ticks(5));
+
+        // Add X Axis label
+        magnitudeChart.append("text")
+            .attr("class", "x-axis-label")
+            .attr("text-anchor", "middle")
+            .attr("x", innerWidth / 2)
+            .attr("y", innerHeight + margin.bottom - 10)
+            .text("Magnitude");
+
+        // Add Y Axis label
+        magnitudeChart.append("text")
+            .attr("class", "y-axis-label")
+            .attr("text-anchor", "middle")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -innerHeight / 2)
+            .attr("y", -margin.left + 15)
+            .text("Count");
 
         // Duration Chart
         earthquakeData.forEach(d => d.time = new Date(d.time));
@@ -723,6 +740,23 @@
         durationChart.append("g")
             .call(d3.axisLeft(yScaleDuration));
 
+        // Add X Axis label
+        durationChart.append("text")
+            .attr("class", "x-axis-label")
+            .attr("text-anchor", "middle")
+            .attr("x", innerWidth / 2)
+            .attr("y", innerHeight + margin.bottom - 3)
+            .text("Month");
+
+        // Add Y Axis label
+        durationChart.append("text")
+            .attr("class", "y-axis-label")
+            .attr("text-anchor", "middle")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -innerHeight / 2)
+            .attr("y", -margin.left + 15)
+            .text("Count");
+
 
         // Depth Chart
         let depthData = d3.rollup(earthquakeData, v => v.length, d => Math.floor(d.depth / 50) * 50);
@@ -761,6 +795,23 @@
         depthChart.append("g")
             .call(d3.axisLeft(yScaleDepth));
 
+        // Add X Axis label
+        depthChart.append("text")
+            .attr("class", "x-axis-label")
+            .attr("text-anchor", "middle")
+            .attr("x", innerWidth / 2)
+            .attr("y", innerHeight + margin.bottom - 10)
+            .text("Depth (km)");
+
+        // Add Y Axis label
+        depthChart.append("text")
+            .attr("class", "y-axis-label")
+            .attr("text-anchor", "middle")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -innerHeight / 2)
+            .attr("y", -margin.left + 15)
+            .text("Count");
+
         // Timeline Chart
         let timelineChart = d3.select("#timeline")
             .append("svg")
@@ -794,6 +845,23 @@
 
         timelineChart.append("g")
             .call(d3.axisLeft(yScaleTimeline));
+
+        // Add X Axis label
+        timelineChart.append("text")
+            .attr("class", "x-axis-label")
+            .attr("text-anchor", "middle")
+            .attr("x", innerWidth / 2)
+            .attr("y", innerHeight + margin.bottom - 10)
+            .text("Time");
+
+        // Add Y Axis label
+        timelineChart.append("text")
+            .attr("class", "y-axis-label")
+            .attr("text-anchor", "middle")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -innerHeight / 2)
+            .attr("y", -margin.left + 15)
+            .text("Magnitude");
     }
 
         loadEarthquakeData();
