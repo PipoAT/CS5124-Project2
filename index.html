@@ -62,7 +62,12 @@
 
     <div class="visualizations">
         <h2>Earthquake Data Visualizations</h2>
-        
+
+        <div class="chart-container">
+            <h3 class="chart-title">Timeline</h3>
+            <div id="timeline"></div>
+        </div>
+
         <div class="chart-container">
             <h3 class="chart-title">Magnitude Chart</h3>
             <div id="magnitudeChart"></div>
@@ -114,16 +119,6 @@
         map.on('zoom', function() {
             lensMap.setView(map.getCenter(), map.getZoom() + 2);
         });
-
-        // Remove lensMap event listeners to prevent infinite loop
-        // lensMap.on('move', function() {
-        //     map.setView(lensMap.getCenter(), map.getZoom());
-        // });
-
-        // lensMap.on('zoom', function() {
-        //     map.setView(lensMap.getCenter(), lensMap.getZoom() - 2);
-        // });
-
 
         let earthquakeData = [];
         let selectedEarthquakes = []; // To track selected earthquakes
@@ -595,6 +590,7 @@
         d3.select("#magnitudeChart").html("");
         d3.select("#durationChart").html("");
         d3.select("#depthChart").html("");
+        d3.select("#timeline").html("");
 
         const width = 1400;
         const height = 300;
@@ -739,6 +735,40 @@
 
         depthChart.append("g")
             .call(d3.axisLeft(yScaleDepth));
+
+        // Timeline Chart
+        let timelineChart = d3.select("#timeline")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .append("g")
+            .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+        let xScaleTimeline = d3.scaleTime()
+            .domain(d3.extent(earthquakeData, d => d.time))
+            .range([0, innerWidth]);
+
+        let yScaleTimeline = d3.scaleLinear()
+            .domain([0, d3.max(earthquakeData, d => d.magnitude)])
+            .range([innerHeight, 0]);
+
+        timelineChart.append("path")
+            .datum(earthquakeData)
+            .attr("fill", "none")
+            .attr("stroke", "steelblue")
+            .attr("stroke-width", 1.5)
+            .attr("d", d3.line()
+            .x(d => xScaleTimeline(d.time))
+            .y(d => yScaleTimeline(d.magnitude))
+            );
+
+        // Add X and Y Axes
+        timelineChart.append("g")
+            .attr("transform", `translate(0, ${innerHeight})`)
+            .call(d3.axisBottom(xScaleTimeline));
+
+        timelineChart.append("g")
+            .call(d3.axisLeft(yScaleTimeline));
     }
 
         loadEarthquakeData();
