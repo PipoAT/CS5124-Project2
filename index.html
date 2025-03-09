@@ -613,160 +613,172 @@
 
             // Adding tooltip for details-on-demand
             const tooltip = d3.select("body").append("div")
-                .attr("class", "tooltip")
-                .style("position", "absolute")
-                .style("background", "#fff")
-                .style("padding", "5px")
-                .style("border", "1px solid #ccc")
-                .style("border-radius", "5px")
-                .style("pointer-events", "none")
-                .style("opacity", 0);
+            .attr("class", "tooltip")
+            .style("position", "absolute")
+            .style("background", "#fff")
+            .style("padding", "5px")
+            .style("border", "1px solid #ccc")
+            .style("border-radius", "5px")
+            .style("pointer-events", "none")
+            .style("opacity", 0);
 
             // Create a dropdown for selecting the attribute to display
             const attributeSelector = d3.select(".visualizations")
-                .insert("select", ":first-child")
-                .attr("id", "attributeSelector")
-                .style("margin-bottom", "10px");
+            .insert("select", ":first-child")
+            .attr("id", "attributeSelector")
+            .style("margin-bottom", "10px");
 
             attributeSelector.selectAll("option")
-                .data(["Magnitude", "Duration", "Depth"])
-                .enter()
-                .append("option")
-                .text(d => d);
+            .data(["Magnitude", "Duration", "Depth"])
+            .enter()
+            .append("option")
+            .text(d => d);
 
             // Function to update the bar chart based on selected attribute
             function updateBarChart(attribute) {
-                // Clear existing chart
-                d3.select("#magnitudeChart").html("");
+            // Clear existing chart
+            d3.select("#magnitudeChart").html("");
 
-                let data, xScale, yScale, xAxisLabel;
+            let data, xScale, yScale, xAxisLabel;
 
-                if (attribute === "Magnitude") {
-                    data = d3.histogram()
-                        .domain([d3.min(earthquakeData, d => d.magnitude), d3.max(earthquakeData, d => d.magnitude)])
-                        .thresholds(d3.range(0, d3.max(earthquakeData, d => d.magnitude) + 0.5, 0.5))
-                        (earthquakeData.map(d => d.magnitude));
+            if (attribute === "Magnitude") {
+                data = d3.histogram()
+                .domain([d3.min(earthquakeData, d => d.magnitude), d3.max(earthquakeData, d => d.magnitude)])
+                .thresholds(d3.range(0, d3.max(earthquakeData, d => d.magnitude) + 0.5, 0.5))
+                (earthquakeData.map(d => d.magnitude));
 
-                    xScale = d3.scaleBand()
-                        .domain(data.map(d => d.x0))
-                        .range([0, innerWidth])
-                        .padding(0.1);
+                xScale = d3.scaleBand()
+                .domain(data.map(d => d.x0))
+                .range([0, innerWidth])
+                .padding(0.1);
 
-                    yScale = d3.scaleLinear()
-                        .domain([0, d3.max(data, d => d.length)])
-                        .range([innerHeight, 0]);
+                yScale = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.length)])
+                .range([innerHeight, 0]);
 
-                    xAxisLabel = "Magnitude";
-                } else if (attribute === "Duration") {
-                    data = Array.from(d3.rollup(
-                        earthquakeData,
-                        v => v.length,
-                        d => d3.timeFormat("%Y-%m")(d.time)
-                    ), ([key, value]) => ({ date: key, count: value }))
-                        .sort((a, b) => d3.ascending(a.date, b.date));
+                xAxisLabel = "Magnitude";
+            } else if (attribute === "Duration") {
+                data = Array.from(d3.rollup(
+                earthquakeData,
+                v => v.length,
+                d => d3.timeFormat("%Y-%m")(d.time)
+                ), ([key, value]) => ({ date: key, count: value }))
+                .sort((a, b) => d3.ascending(a.date, b.date));
 
-                    xScale = d3.scaleBand()
-                        .domain(data.map(d => d.date))
-                        .range([0, innerWidth])
-                        .padding(0.1);
+                xScale = d3.scaleBand()
+                .domain(data.map(d => d.date))
+                .range([0, innerWidth])
+                .padding(0.1);
 
-                    yScale = d3.scaleLinear()
-                        .domain([0, d3.max(data, d => d.count)])
-                        .range([innerHeight, 0]);
+                yScale = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.count)])
+                .range([innerHeight, 0]);
 
-                    xAxisLabel = "Month";
-                } else if (attribute === "Depth") {
-                    data = Array.from(d3.rollup(
-                        earthquakeData,
-                        v => v.length,
-                        d => Math.floor(d.depth / 50) * 50
-                    ), ([key, value]) => ({ depth: key, count: value }))
-                        .sort((a, b) => a.depth - b.depth);
+                xAxisLabel = "Month";
+            } else if (attribute === "Depth") {
+                data = Array.from(d3.rollup(
+                earthquakeData,
+                v => v.length,
+                d => Math.floor(d.depth / 50) * 50
+                ), ([key, value]) => ({ depth: key, count: value }))
+                .sort((a, b) => a.depth - b.depth);
 
-                    xScale = d3.scaleBand()
-                        .domain(data.map(d => d.depth))
-                        .range([0, innerWidth])
-                        .padding(0.1);
+                xScale = d3.scaleBand()
+                .domain(data.map(d => d.depth))
+                .range([0, innerWidth])
+                .padding(0.1);
 
-                    yScale = d3.scaleLinear()
-                        .domain([0, d3.max(data, d => d.count)])
-                        .range([innerHeight, 0]);
+                yScale = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.count)])
+                .range([innerHeight, 0]);
 
-                    xAxisLabel = "Depth (km)";
-                }
-
-                let chart = d3.select("#magnitudeChart")
-                    .append("svg")
-                    .attr("width", width)
-                    .attr("height", height)
-                    .append("g")
-                    .attr("transform", `translate(${margin.left}, ${margin.top})`);
-
-                chart.selectAll(".bar")
-                    .data(data)
-                    .enter()
-                    .append("rect")
-                    .attr("class", "bar")
-                    .attr("x", d => xScale(attribute === "Magnitude" ? d.x0 : (attribute === "Duration" ? d.date : d.depth)))
-                    .attr("y", d => yScale(attribute === "Magnitude" ? d.length : d.count))
-                    .attr("width", xScale.bandwidth())
-                    .attr("height", d => innerHeight - yScale(attribute === "Magnitude" ? d.length : d.count))
-                    .attr("fill", "steelblue")
-                    .on("mouseover", function (event, d) {
-                        d3.select(this).attr("fill", "orange");
-                        tooltip.transition().duration(200).style("opacity", 1);
-                        tooltip.html(`${xAxisLabel}: ${attribute === "Magnitude" ? d.x0 : (attribute === "Duration" ? d.date : d.depth)}<br>Count: ${attribute === "Magnitude" ? d.length : d.count}`)
-                            .style("color", "black")
-                            .style("background-color", "white")
-                            .style("left", (event.pageX + 10) + "px")
-                            .style("top", (event.pageY - 20) + "px")
-                            .style("pointer-events", "none")
-                            .style("display", "block");
-                    })
-                    .on("mousemove", function (event) {
-                        tooltip.style("left", (event.pageX + 10) + "px")
-                            .style("top", (event.pageY - 20) + "px");
-                    })
-                    .on("mouseout", function () {
-                        d3.select(this).attr("fill", "steelblue");
-                        tooltip.transition().duration(200).style("opacity", 0);
-                    });
-
-                // Add X and Y Axes
-                chart.append("g")
-                    .attr("transform", `translate(0, ${innerHeight})`)
-                    .call(d3.axisBottom(xScale).tickFormat(attribute === "Magnitude" ? d3.format(".1f") : null));
-
-                chart.append("g")
-                    .call(d3.axisLeft(yScale).ticks(5));
-
-                // Add X Axis label
-                chart.append("text")
-                    .attr("class", "x-axis-label")
-                    .attr("text-anchor", "middle")
-                    .attr("x", innerWidth / 2)
-                    .attr("y", innerHeight + margin.bottom - 10)
-                    .text(xAxisLabel);
-
-                // Add Y Axis label
-                chart.append("text")
-                    .attr("class", "y-axis-label")
-                    .attr("text-anchor", "middle")
-                    .attr("transform", "rotate(-90)")
-                    .attr("x", -innerHeight / 2)
-                    .attr("y", -margin.left + 10)
-                    .text("Count");
+                xAxisLabel = "Depth (km)";
             }
 
-            // Initial chart rendering
-            updateBarChart("Magnitude");
+            let chart = d3.select("#magnitudeChart")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .append("g")
+                .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-            // Update chart on attribute change
-            d3.select("#attributeSelector").on("change", function() {
-                updateBarChart(this.value);
-            });
+            chart.selectAll(".bar")
+                .data(data)
+                .enter()
+                .append("rect")
+                .attr("class", "bar")
+                .attr("x", d => xScale(attribute === "Magnitude" ? d.x0 : (attribute === "Duration" ? d.date : d.depth)))
+                .attr("y", d => yScale(attribute === "Magnitude" ? d.length : d.count))
+                .attr("width", xScale.bandwidth())
+                .attr("height", d => innerHeight - yScale(attribute === "Magnitude" ? d.length : d.count))
+                .attr("fill", "steelblue")
+                .on("mouseover", function (event, d) {
+                d3.select(this).attr("fill", "orange");
+                tooltip.transition().duration(200).style("opacity", 1);
+                tooltip.html(`${xAxisLabel}: ${attribute === "Magnitude" ? d.x0 : (attribute === "Duration" ? d.date : d.depth)}<br>Count: ${attribute === "Magnitude" ? d.length : d.count}`)
+                    .style("color", "black")
+                    .style("background-color", "white")
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 20) + "px")
+                    .style("pointer-events", "none")
+                    .style("display", "block");
+                })
+                .on("mousemove", function (event) {
+                tooltip.style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 20) + "px");
+                })
+                .on("mouseout", function () {
+                d3.select(this).attr("fill", "steelblue");
+                tooltip.transition().duration(200).style("opacity", 0);
+                });
 
-            // Timeline Chart
+            // Add X and Y Axes
+            chart.append("g")
+                .attr("transform", `translate(0, ${innerHeight})`)
+                .call(d3.axisBottom(xScale).tickFormat(attribute === "Magnitude" ? d3.format(".1f") : null));
+
+            chart.append("g")
+                .call(d3.axisLeft(yScale).ticks(5));
+
+            // Add X Axis label
+            chart.append("text")
+                .attr("class", "x-axis-label")
+                .attr("text-anchor", "middle")
+                .attr("x", innerWidth / 2)
+                .attr("y", innerHeight + margin.bottom - 10)
+                .text(xAxisLabel);
+
+            // Add Y Axis label
+            chart.append("text")
+                .attr("class", "y-axis-label")
+                .attr("text-anchor", "middle")
+                .attr("transform", "rotate(-90)")
+                .attr("x", -innerHeight / 2)
+                .attr("y", -margin.left + 10)
+                .text("Count");
+            }
+
+            // Function to update the timeline chart based on selected attribute
+            function updateTimelineChart(attribute) {
+            // Clear existing chart
+            d3.select("#timeline").html("");
+
+            let data, yScale, yAxisLabel;
+
+            if (attribute === "Magnitude") {
+                data = earthquakeData;
+                yScale = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.magnitude)])
+                .range([innerHeight, 0]);
+                yAxisLabel = "Magnitude";
+            } else if (attribute === "Depth") {
+                data = earthquakeData;
+                yScale = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.depth)])
+                .range([innerHeight, 0]);
+                yAxisLabel = "Depth (km)";
+            }
+
             let timelineChart = d3.select("#timeline")
                 .append("svg")
                 .attr("width", width)
@@ -775,47 +787,43 @@
                 .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
             let xScaleTimeline = d3.scaleTime()
-                .domain(d3.extent(earthquakeData, d => d.time))
+                .domain(d3.extent(data, d => d.time))
                 .range([0, innerWidth]);
 
-            let yScaleTimeline = d3.scaleLinear()
-                .domain([0, d3.max(earthquakeData, d => d.magnitude)])
-                .range([innerHeight, 0]);
-
             timelineChart.append("path")
-                .datum(earthquakeData)
+                .datum(data)
                 .attr("fill", "none")
                 .attr("stroke", "steelblue")
                 .attr("stroke-width", 1.5)
                 .attr("d", 
-                    d3.line()
-                        .x(d => xScaleTimeline(d.time))
-                        .y(d => yScaleTimeline(d.magnitude))
+                d3.line()
+                    .x(d => xScaleTimeline(d.time))
+                    .y(d => yScale(d[attribute.toLowerCase()]))
                 );
 
             // Add circles for each data point
             timelineChart.selectAll("circle")
-                .data(earthquakeData)
+                .data(data)
                 .enter()
                 .append("circle")
                 .attr("cx", d => xScaleTimeline(d.time))
-                .attr("cy", d => yScaleTimeline(d.magnitude))
+                .attr("cy", d => yScale(d[attribute.toLowerCase()]))
                 .attr("r", 3)
                 .attr("fill", "steelblue")
                 .on("mouseover", function (event, d) {
-                    d3.select(this).attr("fill", "orange").attr("r", 6);
-                    tooltip.transition().duration(200).style("opacity", 1);
-                    tooltip.html(`Time: ${d3.timeFormat("%Y-%m-%d")(d.time)}<br>Magnitude: ${d.magnitude}`)
-                        .style("color", "black")
-                        .style("background-color", "white")
-                        .style("left", (event.pageX + 10) + "px")
-                        .style("top", (event.pageY - 20) + "px")
-                        .style("pointer-events", "none")
-                        .style("display", "block");
+                d3.select(this).attr("fill", "orange").attr("r", 6);
+                tooltip.transition().duration(200).style("opacity", 1);
+                tooltip.html(`Time: ${d3.timeFormat("%Y-%m-%d")(d.time)}<br>${yAxisLabel}: ${d[attribute.toLowerCase()]}`)
+                    .style("color", "black")
+                    .style("background-color", "white")
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 20) + "px")
+                    .style("pointer-events", "none")
+                    .style("display", "block");
                 })
                 .on("mouseout", function () {
-                    d3.select(this).attr("fill", "steelblue").attr("r", 3);
-                    tooltip.transition().duration(200).style("opacity", 0);
+                d3.select(this).attr("fill", "steelblue").attr("r", 3);
+                tooltip.transition().duration(200).style("opacity", 0);
                 });
 
             // Add X and Y Axes
@@ -824,7 +832,7 @@
                 .call(d3.axisBottom(xScaleTimeline));
 
             timelineChart.append("g")
-                .call(d3.axisLeft(yScaleTimeline));
+                .call(d3.axisLeft(yScale));
 
             // Add X Axis label
             timelineChart.append("text")
@@ -841,7 +849,18 @@
                 .attr("transform", "rotate(-90)")
                 .attr("x", -innerHeight / 2)
                 .attr("y", -margin.left + 15)
-                .text("Magnitude");
+                .text(yAxisLabel);
+            }
+
+            // Initial chart rendering
+            updateBarChart("Magnitude");
+            updateTimelineChart("Magnitude");
+
+            // Update charts on attribute change
+            d3.select("#attributeSelector").on("change", function() {
+            updateBarChart(this.value);
+            updateTimelineChart(this.value);
+            });
         }
 
         loadEarthquakeData();
