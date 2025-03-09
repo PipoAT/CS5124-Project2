@@ -486,23 +486,21 @@
 
                 xAxisLabel = "Magnitude";
             } else if (attribute === "Duration") {
-               // Parse dates correctly and sort them
                 data = Array.from(d3.rollup(
-                    earthquakeData,
-                    v => v.length,
-                    d => d3.timeFormat("%Y-%m")(new Date(d.time)) // Ensure d.time is correctly parsed
-                ), ([key, value]) => ({ date: d3.timeParse("%Y-%m")(key), count: value }))
-                .sort((a, b) => d3.ascending(a.date, b.date)); // Sort based on parsed date
+                earthquakeData,
+                v => v.length,
+                d => d3.timeFormat("%Y-%m")(d.time)
+                ), ([key, value]) => ({ date: key, count: value }))
+                .sort((a, b) => d3.ascending(a.date, b.date));
 
-                xScale = d3.scaleTime() // Use scaleTime for better date handling
-                    .domain(d3.extent(data, d => d.date))
-                    .range([0, innerWidth]);
+                xScale = d3.scaleBand()
+                .domain(data.map(d => d.date))
+                .range([0, innerWidth])
+                .padding(0.1);
 
                 yScale = d3.scaleLinear()
-                    .domain([0, d3.max(data, d => d.count)])
-                    .range([innerHeight, 0]);
-
-                xAxisLabel = "Time (Months)";
+                .domain([0, d3.max(data, d => d.count)])
+                .range([innerHeight, 0]);
             } else if (attribute === "Depth") {
                 data = Array.from(d3.rollup(
                 earthquakeData,
@@ -511,7 +509,7 @@
                 ), ([key, value]) => ({ depth: key, count: value }))
                 .sort((a, b) => a.depth - b.depth);
 
-                xScale = d3.scaleBand()
+                xScale = d3.scaleBand() 
                 .domain(data.map(d => d.depth))
                 .range([0, innerWidth])
                 .padding(0.1);
