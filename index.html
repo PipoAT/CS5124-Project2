@@ -55,7 +55,7 @@
             <button onclick="startAnimationUI()">Start Animation</button>
             <button onclick="clearInterval(animationInterval);">Stop Animation</button>
         </div>
-        <div id="lensMap" style="width: 200px; height: 200px; position: absolute; top: 10px; right: 10px; border: 2px solid #000; z-index: 1000;"></div>
+        <div id="lensMap"></div>
         
         <div id="map"></div>
     </div>
@@ -619,6 +619,12 @@
                 .domain([0, d3.max(data, d => d.depth)])
                 .range([innerHeight, 0]);
                 yAxisLabel = "Depth (km)";
+            } else if (attribute === "Duration") {
+                data = earthquakeData;
+                yScale = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.duration)])
+                .range([innerHeight, 0]);
+                yAxisLabel = "Duration";
             }
 
             let timelineChart = d3.select("#timeline")
