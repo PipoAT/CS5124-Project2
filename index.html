@@ -23,7 +23,7 @@
             </select>
 
             <label for="magnitude">Magnitude:</label>
-            <select id="magnitudeFilter" name="magnitudeFilter">
+            <select id="magnitudeFilter" name="magnitudeFilter" title="Select magnitude filter">
                 <option value="greater">Greater than</option>
                 <option value="less">Less than</option>
                 <option value="between">Between</option>
@@ -33,7 +33,7 @@
             <input type="number" id="magnitudeValue2" placeholder="Enter second value" style="display: none;" min="1" max="8">            
 
             <label for="depth">Depth:</label>
-            <select id="depthFilter" name="depthFilter">
+            <select id="depthFilter" name="depthFilter" title="Select depth filter">
                 <option value="greater">Greater than</option>
                 <option value="less">Less than</option>
                 <option value="between">Between</option>
@@ -43,8 +43,8 @@
             <input type="number" id="depthValue2" placeholder="Enter second value" style="display: none;" min="-10" max="660">
 
             <label for="timeRange">Time Range:</label>
-            <input type="date" id="startTime">
-            <input type="date" id="endTime">
+            <input type="date" id="startTime" title="Start Time" placeholder="Select start date">
+            <input type="date" id="endTime" title="End Time" placeholder="Select end date">
 
             <button onclick="applyFilters()">Apply Filters</button>
             <button onclick="resetFilters()">Reset</button>
@@ -110,8 +110,7 @@
             lensMap.setView(map.getCenter(), map.getZoom() + 2);
         });
 
-        let earthquakeData = [];
-        let selectedEarthquakes = []; // To track selected earthquakes
+        let earthquakeData = [], selectedEarthquakes = [];
         let tooltip = d3.select("body").select(".tooltip");
 
         // Select the tooltip element or create it if not already in the HTML
@@ -127,8 +126,7 @@
         }
 
         let isMultiSelect = false; // Track if the CTRL key is pressed
-        let selectionBox = null; // Hold reference to the selection rectangle
-        let startPoint = null; // Start point for the selection rectangle
+        let selectionBox = null, startPoint = null; // Hold reference to the selection rectangle
         let selectedMarkers = new Set(); // Track selected markers by their IDs
 
         // Enable multi-select when Ctrl is held down
@@ -204,25 +202,17 @@
             }
         });
     }
-
     // Function to deselect all markers
     function deselectAllMarkers() {
-        // Loop through selected markers and unselect them
         selectedMarkers.forEach(markerId => {
-            const marker = markers[markerId]; // Retrieve the marker from the markers object
+            const marker = markers[markerId];
             if (marker) {
-                // Deselect the marker by calling your deselect function (e.g., change color, remove class)
-                handleEarthquakeDeselect(marker); // Implement this to reset the marker's appearance
+                marker.setStyle({ color: "#000", weight: 1 }); // Reset to default style
+                selectedEarthquakes.length = 0; // Clear the selected earthquakes array
             }
         });
-        selectedEarthquakes.splice(0, selectedEarthquakes.length); // Clear selected earthquakes properly
-        selectedMarkers.clear(); // Clear the selected markers set
-    }
-
-    // Function to handle marker deselect (resetting appearance)
-    function handleEarthquakeDeselect(marker) {
-        marker.setStyle({ color: "#000", weight: 1 }); // Reset to default style
-        selectedEarthquakes.length = 0; // Clear the selected earthquakes array
+        selectedEarthquakes.length = 0;
+        selectedMarkers.clear();
     }
 
         async function loadEarthquakeData() {
@@ -242,8 +232,7 @@
         var colorScale = d3.scaleSequential(d3.interpolateReds)
             .domain([3, 8]);
 
-        let markers = {};  // Object to store markers by their id
-        let markersTwo = {};
+        let markers = {}, markersTwo = {};  // Object to store markers by their id
 
         function updateVisualization(filters = {}) {
             const removeMarkers = (map) => {
@@ -263,8 +252,6 @@
                    (!filters.startTime || d.time >= filters.startTime) &&
                    (!filters.endTime || d.time <= filters.endTime);
             });
-
-            if (filteredData.length === 0) console.log('No data matches the current filters.');
 
             filteredData.forEach(d => {
             const createMarker = (map) => {
@@ -413,19 +400,19 @@
 
         let animationInterval;
         let accumulatedData = [];
-
+        
         function startAnimation(startTime, endTime, speed) {
             let currentTime = new Date(startTime);
             accumulatedData = [];
             clearInterval(animationInterval);
             animationInterval = setInterval(() => {
-                if (currentTime > endTime) {
-                    clearInterval(animationInterval);
-                    return;
-                }
-                accumulatedData = earthquakeData.filter(d => d.time <= currentTime);
-                updateVisualization({ startTime: startTime, endTime: currentTime });
-                currentTime.setUTCDate(currentTime.getUTCDate() + 1);
+            if (currentTime > endTime) {
+                clearInterval(animationInterval);
+                return;
+            }
+            accumulatedData = earthquakeData.filter(d => d.time <= currentTime);
+            updateVisualization({ startTime, endTime: currentTime });
+            currentTime.setUTCDate(currentTime.getUTCDate() + 1);
             }, speed);
         }
 
@@ -447,8 +434,7 @@
             d3.select("#magnitudeChart").html("");
             d3.select("#timeline").html("");
 
-            const width = 1400;
-            const height = 300;
+            const width = 1400, height = 300;
             const margin = { top: 20, right: 60, bottom: 50, left: 60 }; // Added margins for axes
             const innerWidth = width - margin.left - margin.right;
             const innerHeight = height - margin.top - margin.bottom;
@@ -602,102 +588,84 @@
 
             // Function to update the timeline chart based on selected attribute
             function updateTimelineChart(attribute) {
-            // Clear existing chart
-            d3.select("#timeline").html("");
+                // Clear existing chart
+                d3.select("#timeline").html("");
 
-            let data, yScale, yAxisLabel;
+                let data = earthquakeData;
+                let yScale = d3.scaleLinear()
+                    .domain([0, d3.max(data, d => d[attribute.toLowerCase()])])
+                    .range([innerHeight, 0]);
+                let yAxisLabel = attribute === "Depth" ? "Depth (km)" : attribute;
 
-            if (attribute === "Magnitude") {
-                data = earthquakeData;
-                yScale = d3.scaleLinear()
-                .domain([0, d3.max(data, d => d.magnitude)])
-                .range([innerHeight, 0]);
-                yAxisLabel = "Magnitude";
-            } else if (attribute === "Depth") {
-                data = earthquakeData;
-                yScale = d3.scaleLinear()
-                .domain([0, d3.max(data, d => d.depth)])
-                .range([innerHeight, 0]);
-                yAxisLabel = "Depth (km)";
-            } else if (attribute === "Duration") {
-                data = earthquakeData;
-                yScale = d3.scaleLinear()
-                .domain([0, d3.max(data, d => d.duration)])
-                .range([innerHeight, 0]);
-                yAxisLabel = "Duration";
-            }
+                let timelineChart = d3.select("#timeline")
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height)
+                    .append("g")
+                    .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-            let timelineChart = d3.select("#timeline")
-                .append("svg")
-                .attr("width", width)
-                .attr("height", height)
-                .append("g")
-                .attr("transform", `translate(${margin.left}, ${margin.top})`);
+                let xScaleTimeline = d3.scaleTime()
+                    .domain(d3.extent(data, d => d.time))
+                    .range([0, innerWidth]);
 
-            let xScaleTimeline = d3.scaleTime()
-                .domain(d3.extent(data, d => d.time))
-                .range([0, innerWidth]);
+                timelineChart.append("path")
+                    .datum(data)
+                    .attr("fill", "none")
+                    .attr("stroke", "steelblue")
+                    .attr("stroke-width", 1.5)
+                    .attr("d", d3.line()
+                        .x(d => xScaleTimeline(d.time))
+                        .y(d => yScale(d[attribute.toLowerCase()])));
 
-            timelineChart.append("path")
-                .datum(data)
-                .attr("fill", "none")
-                .attr("stroke", "steelblue")
-                .attr("stroke-width", 1.5)
-                .attr("d", 
-                d3.line()
-                    .x(d => xScaleTimeline(d.time))
-                    .y(d => yScale(d[attribute.toLowerCase()]))
-                );
+                // Add circles for each data point
+                timelineChart.selectAll("circle")
+                    .data(data)
+                    .enter()
+                    .append("circle")
+                    .attr("cx", d => xScaleTimeline(d.time))
+                    .attr("cy", d => yScale(d[attribute.toLowerCase()]))
+                    .attr("r", 3)
+                    .attr("fill", "steelblue")
+                    .on("mouseover", function (event, d) {
+                        d3.select(this).attr("fill", "orange").attr("r", 6);
+                        tooltip.transition().duration(200).style("opacity", 1);
+                        tooltip.html(`Time: ${d3.timeFormat("%Y-%m-%d")(d.time)}<br>${yAxisLabel}: ${d[attribute.toLowerCase()]}`)
+                            .style("color", "black")
+                            .style("background-color", "white")
+                            .style("left", (event.pageX + 10) + "px")
+                            .style("top", (event.pageY - 20) + "px")
+                            .style("pointer-events", "none")
+                            .style("display", "block");
+                    })
+                    .on("mouseout", function () {
+                        d3.select(this).attr("fill", "steelblue").attr("r", 3);
+                        tooltip.transition().duration(200).style("opacity", 0);
+                    });
 
-            // Add circles for each data point
-            timelineChart.selectAll("circle")
-                .data(data)
-                .enter()
-                .append("circle")
-                .attr("cx", d => xScaleTimeline(d.time))
-                .attr("cy", d => yScale(d[attribute.toLowerCase()]))
-                .attr("r", 3)
-                .attr("fill", "steelblue")
-                .on("mouseover", function (event, d) {
-                d3.select(this).attr("fill", "orange").attr("r", 6);
-                tooltip.transition().duration(200).style("opacity", 1);
-                tooltip.html(`Time: ${d3.timeFormat("%Y-%m-%d")(d.time)}<br>${yAxisLabel}: ${d[attribute.toLowerCase()]}`)
-                    .style("color", "black")
-                    .style("background-color", "white")
-                    .style("left", (event.pageX + 10) + "px")
-                    .style("top", (event.pageY - 20) + "px")
-                    .style("pointer-events", "none")
-                    .style("display", "block");
-                })
-                .on("mouseout", function () {
-                d3.select(this).attr("fill", "steelblue").attr("r", 3);
-                tooltip.transition().duration(200).style("opacity", 0);
-                });
+                // Add X and Y Axes
+                timelineChart.append("g")
+                    .attr("transform", `translate(0, ${innerHeight})`)
+                    .call(d3.axisBottom(xScaleTimeline));
 
-            // Add X and Y Axes
-            timelineChart.append("g")
-                .attr("transform", `translate(0, ${innerHeight})`)
-                .call(d3.axisBottom(xScaleTimeline));
+                timelineChart.append("g")
+                    .call(d3.axisLeft(yScale));
 
-            timelineChart.append("g")
-                .call(d3.axisLeft(yScale));
+                // Add X Axis label
+                timelineChart.append("text")
+                    .attr("class", "x-axis-label")
+                    .attr("text-anchor", "middle")
+                    .attr("x", innerWidth / 2)
+                    .attr("y", innerHeight + margin.bottom - 10)
+                    .text("Time");
 
-            // Add X Axis label
-            timelineChart.append("text")
-                .attr("class", "x-axis-label")
-                .attr("text-anchor", "middle")
-                .attr("x", innerWidth / 2)
-                .attr("y", innerHeight + margin.bottom - 10)
-                .text("Time");
-
-            // Add Y Axis label
-            timelineChart.append("text")
-                .attr("class", "y-axis-label")
-                .attr("text-anchor", "middle")
-                .attr("transform", "rotate(-90)")
-                .attr("x", -innerHeight / 2)
-                .attr("y", -margin.left + 15)
-                .text(yAxisLabel);
+                // Add Y Axis label
+                timelineChart.append("text")
+                    .attr("class", "y-axis-label")
+                    .attr("text-anchor", "middle")
+                    .attr("transform", "rotate(-90)")
+                    .attr("x", -innerHeight / 2)
+                    .attr("y", -margin.left + 15)
+                    .text(yAxisLabel);
             }
 
             // Initial chart rendering
