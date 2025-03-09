@@ -53,7 +53,7 @@
             <label for="speed">Speed (ms per day):</label>
             <input type="number" id="speed" value="500">
             <button onclick="startAnimationUI()">Start Animation</button>
-            <button onclick="stopAnimation()">Stop Animation</button>
+            <button onclick="clearInterval(animationInterval);">Stop Animation</button>
         </div>
         <div id="lensMap" style="width: 200px; height: 200px; position: absolute; top: 10px; right: 10px; border: 2px solid #000; z-index: 1000;"></div>
         
@@ -246,110 +246,45 @@
         let markersTwo = {};
 
         function updateVisualization(filters = {}) {
-            // Remove any existing markers from the map
+            const removeMarkers = (map) => {
             map.eachLayer(layer => {
-                if (layer instanceof L.CircleMarker) {
-                    map.removeLayer(layer);
-                }
+                if (layer instanceof L.CircleMarker) map.removeLayer(layer);
             });
+            };
 
-            lensMap.eachLayer(layer => {
-                if (layer instanceof L.CircleMarker) {
-                    lensMap.removeLayer(layer);
-                }
-            });
+            removeMarkers(map);
+            removeMarkers(lensMap);
 
             let filteredData = earthquakeData.filter(d => {
-                // Magnitude filtering based on the selected filter type
-                let isMagnitudeValid = true;
-
-                if (filters.magnitude) {
-                    const [minMag, maxMag] = filters.magnitude;
-
-                    if (minMag && maxMag) {
-                        // Between
-                        isMagnitudeValid = d.magnitude >= minMag && d.magnitude <= maxMag;
-                    } else if (minMag) {
-                        // Greater than
-                        isMagnitudeValid = d.magnitude > minMag;
-                    } else if (maxMag) {
-                        // Less than
-                        isMagnitudeValid = d.magnitude < maxMag;
-                    }
-                }
-
-                // Depth filtering
-                let isDepthValid = true;
-                if (filters.depth) {
-                    const [minDepth, maxDepth] = filters.depth;
-
-                    if (minDepth && maxDepth) {
-                        // Between
-                        isDepthValid = d.depth >= minDepth && d.depth <= maxDepth;
-                    } else if (minDepth) {
-                        // Greater than
-                        isDepthValid = d.depth > minDepth;
-                    } else if (maxDepth) {
-                        // Less than
-                        isDepthValid = d.depth < maxDepth;
-                    }
-                }
-
-                // Apply the rest of the filters
-                return isMagnitudeValid &&
-                    (!filters.startTime || d.time >= filters.startTime) &&
-                    (!filters.endTime || d.time <= filters.endTime) &&
-                    (!filters.depth || d.depth >= filters.depth[0] && d.depth <= filters.depth[1]);
+            const [minMag, maxMag] = filters.magnitude || [];
+            const [minDepth, maxDepth] = filters.depth || [];
+            return (!filters.magnitude || (d.magnitude >= minMag && d.magnitude <= maxMag)) &&
+                   (!filters.depth || (d.depth >= minDepth && d.depth <= maxDepth)) &&
+                   (!filters.startTime || d.time >= filters.startTime) &&
+                   (!filters.endTime || d.time <= filters.endTime);
             });
 
-            // If no data matches the filters, you might want to show a message
-            if (filteredData.length === 0) {
-                console.log('No data matches the current filters.');
-            }
+            if (filteredData.length === 0) console.log('No data matches the current filters.');
 
-            // Loop through filtered data and add markers to the map
             filteredData.forEach(d => {
-                let marker = L.circleMarker([d.latitude, d.longitude], {
-                    radius: d.magnitude * 2,
-                    fillColor: colorScale(d.magnitude),
-                    color: "#000",
-                    weight: 1,
-                    opacity: 1,
-                    fillOpacity: 0.8
-                }).addTo(map)
-                .bindPopup(`
-                    <strong>Location:</strong> ${d.place} <br>
-                    <strong>Magnitude:</strong> ${d.magnitude} <br>
-                    <strong>Depth:</strong> ${d.depth} km <br>
-                    <strong>Time:</strong> ${d.time.toUTCString()}
-                `);
+            const createMarker = (map) => {
+                return L.circleMarker([d.latitude, d.longitude], {
+                radius: d.magnitude * 2,
+                fillColor: colorScale(d.magnitude),
+                color: "#000",
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.8
+                }).addTo(map).bindPopup(`
+                <strong>Location:</strong> ${d.place} <br>
+                <strong>Magnitude:</strong> ${d.magnitude} <br>
+                <strong>Depth:</strong> ${d.depth} km <br>
+                <strong>Time:</strong> ${d.time.toUTCString()}
+                `).on("click", event => handleEarthquakeClick(event, d, marker));
+            };
 
-                // Store the marker by its id
-                markers[d.id] = marker;
-
-                // Attach click event for multi-selection
-                marker.on("click", event => handleEarthquakeClick(event, d, marker));
-
-                let markerTwo = L.circleMarker([d.latitude, d.longitude], {
-                    radius: d.magnitude * 2,
-                    fillColor: colorScale(d.magnitude),
-                    color: "#000",
-                    weight: 1,
-                    opacity: 1,
-                    fillOpacity: 0.8
-                }).addTo(lensMap)
-                .bindPopup(`
-                    <strong>Location:</strong> ${d.place} <br>
-                    <strong>Magnitude:</strong> ${d.magnitude} <br>
-                    <strong>Depth:</strong> ${d.depth} km <br>
-                    <strong>Time:</strong> ${d.time.toUTCString()}
-                `);
-
-                // Store the marker by its id
-                markersTwo[d.id] = markerTwo;
-
-                // Attach click event for multi-selection
-                marker.on("click", event => handleEarthquakeClick(event, d, marker));
+            markers[d.id] = createMarker(map);
+            markersTwo[d.id] = createMarker(lensMap);
             });
         }
 
@@ -377,35 +312,24 @@
         function handleEarthquakeClick(mouseX, mouseY, data, marker) {
             if (!isMultiSelect) return; // Ignore clicks unless multi-select mode is active
 
-            // Check if earthquake is already selected
             const earthquakeIndex = selectedEarthquakes.findIndex(eq => eq.id === data.id);
 
             if (earthquakeIndex === -1) {
-                // Add earthquake to selected earthquakes if not already selected
                 selectedEarthquakes.push(data);
                 marker.setStyle({ color: "#FFD700", weight: 2 }); // Highlight selection
             } else {
-                // Remove earthquake from selected earthquakes if already selected
                 selectedEarthquakes.splice(earthquakeIndex, 1);
                 marker.setStyle({ color: "#000", weight: 1 }); // Revert style
             }
 
-            // Update tooltip with aggregated data
             updateTooltip();
 
-            // Only update the tooltip if event is not null
             if (event) {
-                // Get the mouse event coordinates relative to the document
-                const mouseX = event.pageX;
-                const mouseY = event.pageY;
-
-                // Apply dynamic styles to the tooltip based on mouse position
-                tooltip.style("left", `${mouseX + 10}px`)   // Horizontal offset
-                    .style("top", `${mouseY - 40}px`)    // Vertical offset
-                    .style("display", "block")            // Make sure tooltip is shown
-                    .style("z-index", 1000);              // Ensure tooltip is above other elements
+            tooltip.style("left", `${mouseX + 10}px`)
+                .style("top", `${mouseY - 40}px`)
+                .style("display", "block")
+                .style("z-index", 1000);
             }
-            
         }
 
         // Attach the event listener to your earthquake locations (markers on the map)
@@ -442,125 +366,47 @@
             currentLayer.addTo(map);
         });
 
-        // Function to handle the dropdown change for magnitude 
         document.getElementById('magnitudeFilter').addEventListener('change', function() {
-            const value2Input = document.getElementById('magnitudeValue2');
-            if (this.value === 'between') {
-                value2Input.style.display = 'inline';  // Show second input for "Between"
-            } else {
-                value2Input.style.display = 'none';  // Hide second input for other options
-            }
+            document.getElementById('magnitudeValue2').style.display = this.value === 'between' ? 'inline' : 'none';
         });
 
-        // Function to handle the dropdown change for depth 
         document.getElementById('depthFilter').addEventListener('change', function() {
-            const value2Input = document.getElementById('depthValue2');
-            if (this.value === 'between') {
-                value2Input.style.display = 'inline';  // Show second input for "Between"
-            } else {
-                value2Input.style.display = 'none';  // Hide second input for other options
-            }
+            document.getElementById('depthValue2').style.display = this.value === 'between' ? 'inline' : 'none';
         });
 
         // Apply filter
         function applyFilters() {
-            // Get the magnitude filter type from the dropdown
-            const magnitudeFilter = document.getElementById('magnitudeFilter').value;
-            let magnitudeRange = null;
+            const getFilterValues = (filterId, value1Id, value2Id, min, max) => {
+            const filter = document.getElementById(filterId).value;
+            const value1 = parseFloat(document.getElementById(value1Id).value);
+            const value2 = parseFloat(document.getElementById(value2Id).value);
+            if (isNaN(value1) || value1 < min || value1 > max) return alert(`Please enter a valid value between ${min} and ${max}.`);
+            if (filter === "between" && (isNaN(value2) || value2 < min || value2 > max)) return alert(`Please enter a valid second value between ${min} and ${max}.`);
+            return filter === "greater" ? [value1, max] : filter === "less" ? [min, value1] : [Math.min(value1, value2), Math.max(value1, value2)];
+            };
 
-            // Get the selected values for magnitude
-            const magnitude1 = parseFloat(document.getElementById("magnitudeValue1").value);
-            let magnitude2 = parseFloat(document.getElementById("magnitudeValue2").value);
+            const magnitudeRange = getFilterValues('magnitudeFilter', 'magnitudeValue1', 'magnitudeValue2', 1, 8);
+            const depthRange = getFilterValues('depthFilter', 'depthValue1', 'depthValue2', -10, 660);
+            if (!magnitudeRange || !depthRange) return;
 
-            // Validate magnitude range
-            if (isNaN(magnitude1) || magnitude1 < 1 || magnitude1 > 8) {
-                alert("Please enter a valid magnitude between 1 and 8.");
-                return;
-            }
+            const startTime = document.getElementById("startTime").value ? new Date(document.getElementById("startTime").value) : null;
+            const endTime = document.getElementById("endTime").value ? new Date(document.getElementById("endTime").value) : null;
 
-            if (magnitudeFilter === "between") {
-                if (isNaN(magnitude2) || magnitude2 < 1 || magnitude2 > 8) {
-                    alert("Please enter a valid second magnitude between 1 and 8.");
-                    return;
-                }
-            }
-
-            // Apply the filter based on the selected dropdown option
-            if (magnitudeFilter === "greater" && !isNaN(magnitude1)) {
-                magnitudeRange = [magnitude1, 8];  // Greater than magnitude1 and less than or equal to 8
-            } else if (magnitudeFilter === "less" && !isNaN(magnitude1)) {
-                magnitudeRange = [1, magnitude1];  // Greater than or equal to 1 and less than magnitude1
-            } else if (magnitudeFilter === "between" && !isNaN(magnitude1) && !isNaN(magnitude2)) {
-                if (magnitude1 > magnitude2) {
-                    [magnitude1, magnitude2] = [magnitude2, magnitude1];  // Swap to ensure lower value is first
-                }
-                magnitudeRange = [magnitude1, magnitude2];  // Between magnitude1 and magnitude2
-            }
-
-            // Get depth filter type
-            const depthFilter = document.getElementById("depthFilter").value;
-            let depthRange = null;
-
-            const depth1 = parseFloat(document.getElementById("depthValue1").value);
-            let depth2 = parseFloat(document.getElementById("depthValue2").value);
-
-            // Validate depth range
-            if (isNaN(depth1) || depth1 < -10 || depth1 > 660) {
-                alert("Please enter a valid depth between -10 and 660.");
-                return;
-            }
-
-            if (depthFilter === "between") {
-                if (isNaN(depth2) || depth2 < -10 || depth2 > 660) {
-                    alert("Please enter a valid second depth between -10 and 660.");
-                    return;
-                }
-            }
-
-            // Apply depth filter logic
-            if (depthFilter === "greater" && !isNaN(depth1)) {
-                depthRange = [depth1, 660];  // Greater than depth1 and less than or equal to 660
-            } else if (depthFilter === "less" && !isNaN(depth1)) {
-                depthRange = [-10, depth1];  // Greater than or equal to -10 and less than depth1
-            } else if (depthFilter === "between" && !isNaN(depth1) && !isNaN(depth2)) {
-                if (depth1 > depth2) {
-                    [depth1, depth2] = [depth2, depth1];  // Swap to ensure lower value is first
-                }
-                depthRange = [depth1, depth2];  // Between depth1 and depth2
-            }
-
-            // Other filter values
-            let startTime = document.getElementById("startTime").value ? new Date(document.getElementById("startTime").value) : null;
-            let endTime = document.getElementById("endTime").value ? new Date(document.getElementById("endTime").value) : null;
-
-            // Apply the filters
-            updateVisualization({
-                magnitude: magnitudeRange,
-                depth: depthRange,
-                startTime: startTime,
-                endTime: endTime
-            });
-
+            updateVisualization({ magnitude: magnitudeRange, depth: depthRange, startTime, endTime });
             updateCharts();
         }
 
         function resetFilters() {
-            document.getElementById("magnitudeValue1").value = "";
-            document.getElementById("magnitudeValue2").value = "";
-            document.getElementById("magnitudeFilter").value = "greater";  // Default to "Greater than"
+            const resetFields = ["magnitudeValue1", "magnitudeValue2", "depthValue1", "depthValue2", "startTime", "endTime"];
+            resetFields.forEach(id => document.getElementById(id).value = "");
+            document.getElementById("magnitudeFilter").value = "greater";
+            document.getElementById("depthFilter").value = "greater";
             document.getElementById("magnitudeValue2").style.display = "none";
-            document.getElementById("depthValue1").value = "";
-            document.getElementById("depthValue2").value = "";
-            document.getElementById("depthFilter").value = "greater";  // Default to "Greater than"
             document.getElementById("depthValue2").style.display = "none";
-            document.getElementById("startTime").value = "";
-            document.getElementById("endTime").value = "";
-            // Reset the map layer
             document.getElementById("mapStyle").value = "osm";
             map.removeLayer(currentLayer);
-            currentLayer = layers["osm"]; // Ensure "osm" exists in your layers object
+            currentLayer = layers["osm"];
             currentLayer.addTo(map);
-            // document.getElementById("speed").value = 500;
             updateVisualization();
             updateCharts();
         }
@@ -594,10 +440,6 @@
             }
 
             startAnimation(startTime, endTime, speed);
-        }
-
-        function stopAnimation() {
-            clearInterval(animationInterval);
         }
 
         function updateCharts() {
