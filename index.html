@@ -922,8 +922,12 @@
                     d3.select(this).attr("fill", "orange").attr("r", 6);
                     tooltip.transition().duration(200).style("opacity", 1);
                     tooltip.html(`Time: ${d3.timeFormat("%Y-%m-%d")(d.time)}<br>Magnitude: ${d.magnitude}`)
+                        .style("color", "black")
+                        .style("background-color", "white")
                         .style("left", (event.pageX + 10) + "px")
-                        .style("top", (event.pageY - 20) + "px");
+                        .style("top", (event.pageY - 20) + "px")
+                        .style("pointer-events", "none")
+                        .style("display", "block");
                 })
                 .on("mouseout", function () {
                     d3.select(this).attr("fill", "steelblue").attr("r", 3);
