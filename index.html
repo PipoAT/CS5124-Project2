@@ -501,6 +501,8 @@
                 yScale = d3.scaleLinear()
                 .domain([0, d3.max(data, d => d.count)])
                 .range([innerHeight, 0]);
+
+                xAxisLabel = "Duration";
             } else if (attribute === "Depth") {
                 data = Array.from(d3.rollup(
                 earthquakeData,
@@ -606,14 +608,30 @@
                     .domain(d3.extent(data, d => d.time))
                     .range([0, innerWidth]);
 
-                timelineChart.append("path")
-                    .datum(data)
-                    .attr("fill", "none")
-                    .attr("stroke", "steelblue")
-                    .attr("stroke-width", 1.5)
-                    .attr("d", d3.line()
-                        .x(d => xScaleTimeline(d.time))
-                        .y(d => yScale(d[attribute.toLowerCase()])));
+                if (attribute !== "Duration") {
+                    timelineChart.append("path")
+                        .datum(data)
+                        .attr("fill", "none")
+                        .attr("stroke", "steelblue")
+                        .attr("stroke-width", 1.5)
+                        .attr("d", d3.line()
+                            .x(d => xScaleTimeline(d.time))
+                            .y(d => yScale(d[attribute.toLowerCase()])));
+                } else {
+                    let countByDate = d3.rollup(data, v => v.length, d => d3.timeDay(d.time));
+                    let countData = Array.from(countByDate, ([key, value]) => ({ date: key, count: value }));
+
+                    yScale.domain([0, d3.max(countData, d => d.count)]);
+
+                    timelineChart.append("path")
+                        .datum(countData)
+                        .attr("fill", "none")
+                        .attr("stroke", "steelblue")
+                        .attr("stroke-width", 1.5)
+                        .attr("d", d3.line()
+                            .x(d => xScaleTimeline(d.date))
+                            .y(d => yScale(d.count)));
+                }
 
                 // Add circles for each data point
                 timelineChart.selectAll("circle")
