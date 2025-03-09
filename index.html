@@ -63,6 +63,17 @@
     <div class="visualizations">
         <h2>Earthquake Data Visualizations</h2>
 
+           <!-- Create a dropdown for selecting the attribute to display -->
+        <div class="attribute-selector">
+            <label for="attributeSelector">Select Attribute:</label>
+            <select id="attributeSelector" style="margin-bottom: 10px;">
+                <option value="Magnitude">Magnitude</option>
+                <option value="Duration">Duration</option>
+                <option value="Depth">Depth</option>
+            </select>
+        </div>
+
+
         <div class="chart-container">
             <h3 class="chart-title">Timeline</h3>
             <div id="timeline"></div>
@@ -450,18 +461,7 @@
             .style("pointer-events", "none")
             .style("opacity", 0);
 
-            // Create a dropdown for selecting the attribute to display
-            const attributeSelector = d3.select(".visualizations")
-            .insert("select", ":first-child")
-            .attr("id", "attributeSelector")
-            .style("margin-bottom", "10px");
-
-            attributeSelector.selectAll("option")
-            .data(["Magnitude", "Duration", "Depth"])
-            .enter()
-            .append("option")
-            .text(d => d);
-
+        
             // Function to update the bar chart based on selected attribute
             function updateBarChart(attribute) {
             // Clear existing chart
@@ -486,23 +486,23 @@
 
                 xAxisLabel = "Magnitude";
             } else if (attribute === "Duration") {
+               // Parse dates correctly and sort them
                 data = Array.from(d3.rollup(
-                earthquakeData,
-                v => v.length,
-                d => d3.timeFormat("%Y-%m")(d.time)
-                ), ([key, value]) => ({ date: key, count: value }))
-                .sort((a, b) => d3.ascending(a.date, b.date));
+                    earthquakeData,
+                    v => v.length,
+                    d => d3.timeFormat("%Y-%m")(new Date(d.time)) // Ensure d.time is correctly parsed
+                ), ([key, value]) => ({ date: d3.timeParse("%Y-%m")(key), count: value }))
+                .sort((a, b) => d3.ascending(a.date, b.date)); // Sort based on parsed date
 
-                xScale = d3.scaleBand()
-                .domain(data.map(d => d.date))
-                .range([0, innerWidth])
-                .padding(0.1);
+                xScale = d3.scaleTime() // Use scaleTime for better date handling
+                    .domain(d3.extent(data, d => d.date))
+                    .range([0, innerWidth]);
 
                 yScale = d3.scaleLinear()
-                .domain([0, d3.max(data, d => d.count)])
-                .range([innerHeight, 0]);
+                    .domain([0, d3.max(data, d => d.count)])
+                    .range([innerHeight, 0]);
 
-                xAxisLabel = "Month";
+                xAxisLabel = "Time (Months)";
             } else if (attribute === "Depth") {
                 data = Array.from(d3.rollup(
                 earthquakeData,
