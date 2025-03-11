@@ -124,13 +124,9 @@
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(lensMap);
 
-        map.on('move', function() {
-            lensMap.setView(map.getCenter(), lensMap.getZoom());
-        });
+        map.on('move', function() { lensMap.setView(map.getCenter(), lensMap.getZoom());});
 
-        map.on('zoom', function() {
-            lensMap.setView(map.getCenter(), map.getZoom() + 2);
-        });
+        map.on('zoom', function() { lensMap.setView(map.getCenter(), map.getZoom() + 2); });
 
         let earthquakeData = [], selectedEarthquakes = [];
         let tooltip = d3.select("body").select(".tooltip");
@@ -194,9 +190,7 @@
     map.on("mouseup", (event) => {
         if (isMultiSelect && selectionBox) {
             // When mouse is released, finalize the selection
-            const bounds = selectionBox.getBounds();
-            selectMarkersInBounds(bounds, event);
-            
+            selectMarkersInBounds(selectionBox.getBounds(), event);           
             // Remove the selection box after selection is done
             map.removeLayer(selectionBox);
             selectionBox = null;
@@ -227,32 +221,27 @@
     // Function to deselect all markers
     function deselectAllMarkers() {
         selectedMarkers.forEach(markerId => {
-            const marker = markers[markerId];
-            if (marker) {
-                marker.setStyle({ color: "#000", weight: 1 }); // Reset to default style
-                selectedEarthquakes.length = 0; // Clear the selected earthquakes array
-            }
+            markers[markerId]?.setStyle({ color: "#000", weight: 1 });
         });
-        selectedEarthquakes.length = 0;
+        selectedEarthquakes = [];
         selectedMarkers.clear();
     }
 
-        async function loadEarthquakeData() {
-            const data = await d3.csv("data/query.csv");
-            data.forEach(d => {
-                d.latitude = +d.latitude;
-                d.longitude = +d.longitude;
-                d.magnitude = +d.mag;
-                d.depth = +d.depth;
-                d.time = new Date(d.time);
-            });
-            earthquakeData = data;
-            updateVisualization();
-            updateCharts();
-        }
+    async function loadEarthquakeData() {
+        const data = await d3.csv("data/query.csv");
+        data.forEach(d => {
+            d.latitude = +d.latitude;
+            d.longitude = +d.longitude;
+            d.magnitude = +d.mag;
+            d.depth = +d.depth;
+            d.time = new Date(d.time);
+        });
+        earthquakeData = data;
+        updateVisualization();
+        updateCharts();
+    }
 
-        var colorScale = d3.scaleSequential(d3.interpolateReds)
-            .domain([3, 8]);
+        var colorScale = d3.scaleSequential(d3.interpolateReds).domain([3, 8]);
 
         let markers = {}, markersTwo = {};  // Object to store markers by their id
 
@@ -574,9 +563,7 @@
             // Add X and Y Axes
             chart.append("g")
                 .attr("transform", `translate(0, ${innerHeight})`)
-                .call(d3.axisBottom(xScale).tickFormat(attribute === "Magnitude" ? d3.format(".1f") : null));
-
-            chart.append("g")
+                .call(d3.axisBottom(xScale).tickFormat(attribute === "Magnitude" ? d3.format(".1f") : null))
                 .call(d3.axisLeft(yScale).ticks(5));
 
             // Add X Axis label
@@ -672,9 +659,7 @@
                 // Add X and Y Axes
                 timelineChart.append("g")
                     .attr("transform", `translate(0, ${innerHeight})`)
-                    .call(d3.axisBottom(xScaleTimeline));
-
-                timelineChart.append("g")
+                    .call(d3.axisBottom(xScaleTimeline))
                     .call(d3.axisLeft(yScale));
 
                 // Add X Axis label
@@ -700,13 +685,9 @@
             updateTimelineChart("Magnitude");
 
             // Update charts on attribute change
-            d3.select("#attributeSelector").on("change", function() {
-            updateTimelineChart(this.value);
-            });
+            d3.select("#attributeSelector").on("change", function() { updateTimelineChart(this.value); });
 
-            d3.select("#attributeSelectorGraph").on("change", function() {
-            updateBarChart(this.value);
-            });
+            d3.select("#attributeSelectorGraph").on("change", function() { updateBarChart(this.value); });
         }
 
         loadEarthquakeData();
