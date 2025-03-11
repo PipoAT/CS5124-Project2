@@ -146,6 +146,7 @@
         let selectionBox = null, startPoint = null; // Hold reference to the selection rectangle
         let selectedMarkers = new Set(); // Track selected markers by their IDs
         let magnitudeRange;  // 🔹 Declare at the top
+        let depthRange;  // 🔹 Declare at the top
 
         // Enable multi-select when Ctrl is held down
         document.addEventListener("keydown", (event) => {
