@@ -65,8 +65,19 @@
 
            <!-- Create a dropdown for selecting the attribute to display -->
         <div class="attribute-selector">
-            <label for="attributeSelector">Select Attribute:</label>
+            <label for="attributeSelector">Select Attribute for Timeline:</label>
             <select id="attributeSelector" style="margin-bottom: 10px;">
+                <option value="Magnitude">Magnitude</option>
+                <option value="Duration">Duration</option>
+                <option value="Depth">Depth</option>
+            </select>
+        </div>
+
+        <br>
+
+        <div class="attribute-selector">
+            <label for="attributeSelectorGraph">Select Attribute for Distribution Graph:</label>
+            <select id="attributeSelectorGraph" style="margin-bottom: 10px;">
                 <option value="Magnitude">Magnitude</option>
                 <option value="Duration">Duration</option>
                 <option value="Depth">Depth</option>
@@ -690,8 +701,11 @@
 
             // Update charts on attribute change
             d3.select("#attributeSelector").on("change", function() {
-            updateBarChart(this.value);
             updateTimelineChart(this.value);
+            });
+
+            d3.select("#attributeSelectorGraph").on("change", function() {
+            updateBarChart(this.value);
             });
         }
 
