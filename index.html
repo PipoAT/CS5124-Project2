@@ -392,19 +392,24 @@
             updateCharts();
         }
 
-        function resetFilters() {
-            const resetFields = ["magnitudeValue1", "magnitudeValue2", "depthValue1", "depthValue2", "startTime", "endTime"];
-            resetFields.forEach(id => document.getElementById(id).value = "");
-            document.getElementById("magnitudeFilter").value = "greater";
-            document.getElementById("depthFilter").value = "greater";
-            document.getElementById("magnitudeValue2").style.display = "none";
-            document.getElementById("depthValue2").style.display = "none";
-            document.getElementById("mapStyle").value = "osm";
-            map.removeLayer(currentLayer);
-            currentLayer = layers["osm"];
-            currentLayer.addTo(map);
-            updateVisualization();
-            updateCharts();
+        function applyFilters() {
+            const getFilterValues = (filterId, value1Id, value2Id, min, max) => {
+                const filter = document.getElementById(filterId).value;
+                const value1 = parseFloat(document.getElementById(value1Id).value);
+                const value2 = parseFloat(document.getElementById(value2Id).value);
+                if (isNaN(value1) || value1 < min || value1 > max) return alert(`Enter a value between ${min} and ${max}.`);
+                if (filter === "between" && (isNaN(value2) || value2 < min || value2 > max)) return alert(`Enter a second value between ${min} and ${max}.`);
+                return filter === "greater" ? [value1, max] : filter === "less" ? [min, value1] : [Math.min(value1, value2), Math.max(value1, value2)];
+            };
+
+            const magnitudeRange = getFilterValues('magnitudeFilter', 'magnitudeValue1', 'magnitudeValue2', 1, 8);
+            const depthRange = getFilterValues('depthFilter', 'depthValue1', 'depthValue2', -10, 660);
+            if (!magnitudeRange || !depthRange) return;
+
+            const startTime = document.getElementById("startTime").value ? new Date(document.getElementById("startTime").value) : null;
+            const endTime = document.getElementById("endTime").value ? new Date(document.getElementById("endTime").value) : null;
+
+            updateChartsFilter({ magnitude: magnitudeRange, depth: depthRange, startTime, endTime });
         }
 
         let animationInterval;
@@ -436,6 +441,136 @@
             }
 
             startAnimation(startTime, endTime, speed);
+        }
+
+        function updateChartsFilter(filters) {
+            // Clear existing charts
+            d3.select("#magnitudeChart").html("");
+            d3.select("#timeline").html("");
+
+            const width = 1400, height = 300;
+            const margin = { top: 20, right: 60, bottom: 50, left: 60 };
+            const innerWidth = width - margin.left - margin.right;
+            const innerHeight = height - margin.top - margin.bottom;
+
+            // Apply filters to data
+            let filteredData = earthquakeData.filter(d => 
+                d.magnitude >= filters.magnitude[0] && d.magnitude <= filters.magnitude[1] &&
+                d.depth >= filters.depth[0] && d.depth <= filters.depth[1] &&
+                (!filters.startTime || d.time >= filters.startTime) &&
+                (!filters.endTime || d.time <= filters.endTime)
+            );
+
+            function updateBarChart(attribute) {
+                d3.select("#magnitudeChart").html("");
+
+                let data, xScale, yScale, xAxisLabel;
+                
+                if (attribute === "Magnitude") {
+                    data = d3.histogram()
+                        .domain([d3.min(filteredData, d => d.magnitude), d3.max(filteredData, d => d.magnitude)])
+                        .thresholds(d3.range(0, d3.max(filteredData, d => d.magnitude) + 0.5, 0.5))
+                        (filteredData.map(d => d.magnitude));
+
+                    xScale = d3.scaleBand()
+                        .domain(data.map(d => d.x0))
+                        .range([0, innerWidth])
+                        .padding(0.1);
+
+                    yScale = d3.scaleLinear()
+                        .domain([0, d3.max(data, d => d.length)])
+                        .range([innerHeight, 0]);
+
+                    xAxisLabel = "Magnitude";
+                } else if (attribute === "Depth") {
+                    data = Array.from(d3.rollup(
+                        filteredData,
+                        v => v.length,
+                        d => Math.floor(d.depth / 50) * 50
+                    ), ([key, value]) => ({ depth: key, count: value }))
+                    .sort((a, b) => a.depth - b.depth);
+
+                    xScale = d3.scaleBand()
+                        .domain(data.map(d => d.depth))
+                        .range([0, innerWidth])
+                        .padding(0.1);
+
+                    yScale = d3.scaleLinear()
+                        .domain([0, d3.max(data, d => d.count)])
+                        .range([innerHeight, 0]);
+
+                    xAxisLabel = "Depth (km)";
+                }
+
+                let chart = d3.select("#magnitudeChart")
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height)
+                    .append("g")
+                    .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+                chart.selectAll(".bar")
+                    .data(data)
+                    .enter()
+                    .append("rect")
+                    .attr("class", "bar")
+                    .attr("x", d => xScale(attribute === "Magnitude" ? d.x0 : d.depth))
+                    .attr("y", d => yScale(attribute === "Magnitude" ? d.length : d.count))
+                    .attr("width", xScale.bandwidth())
+                    .attr("height", d => innerHeight - yScale(attribute === "Magnitude" ? d.length : d.count))
+                    .attr("fill", "steelblue");
+
+                chart.append("g")
+                    .attr("transform", `translate(0, ${innerHeight})`)
+                    .call(d3.axisBottom(xScale));
+
+                chart.append("g")
+                    .call(d3.axisLeft(yScale));
+
+                chart.append("text")
+                    .attr("text-anchor", "middle")
+                    .attr("x", innerWidth / 2)
+                    .attr("y", innerHeight + margin.bottom - 10)
+                    .text(xAxisLabel);
+            }
+
+            function updateTimelineChart(attribute) {
+                d3.select("#timeline").html("");
+
+                let yScale = d3.scaleLinear()
+                    .domain([0, d3.max(filteredData, d => d[attribute.toLowerCase()])])
+                    .range([innerHeight, 0]);
+
+                let xScaleTimeline = d3.scaleTime()
+                    .domain(d3.extent(filteredData, d => d.time))
+                    .range([0, innerWidth]);
+
+                let timelineChart = d3.select("#timeline")
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height)
+                    .append("g")
+                    .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+                timelineChart.append("path")
+                    .datum(filteredData)
+                    .attr("fill", "none")
+                    .attr("stroke", "steelblue")
+                    .attr("stroke-width", 1.5)
+                    .attr("d", d3.line()
+                        .x(d => xScaleTimeline(d.time))
+                        .y(d => yScale(d[attribute.toLowerCase()])));
+
+                timelineChart.append("g")
+                    .attr("transform", `translate(0, ${innerHeight})`)
+                    .call(d3.axisBottom(xScaleTimeline));
+
+                timelineChart.append("g")
+                    .call(d3.axisLeft(yScale));
+            }
+
+            updateBarChart("Magnitude");
+            updateTimelineChart("Magnitude");
         }
 
         function updateCharts() {
