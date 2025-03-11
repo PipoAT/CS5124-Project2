@@ -561,7 +561,9 @@
             // Add X and Y Axes
             chart.append("g")
                 .attr("transform", `translate(0, ${innerHeight})`)
-                .call(d3.axisBottom(xScale).tickFormat(attribute === "Magnitude" ? d3.format(".1f") : null))
+                .call(d3.axisBottom(xScale).tickFormat(attribute === "Magnitude" ? d3.format(".1f") : null));
+
+            chart.append("g")
                 .call(d3.axisLeft(yScale).ticks(5));
 
             // Add X Axis label
@@ -637,10 +639,12 @@
                         d3.select(this).attr("fill", "steelblue").attr("r", 3);
                         tooltip.transition().duration(200).style("opacity", 0);
                     });
-
-                // Add X and Y Axes
                 timelineChart.append("g")
                     .attr("transform", `translate(0, ${innerHeight})`)
+                    .call(d3.axisBottom(xScaleTimeline));
+
+                timelineChart.append("g")
+                    .call(d3.axisLeft(yScale))
                     .call(d3.axisBottom(xScaleTimeline))
                     .call(d3.axisLeft(yScale));
 
