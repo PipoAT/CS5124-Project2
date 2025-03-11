@@ -331,8 +331,7 @@
         }
 
         // Attach the event listener to your earthquake locations (markers on the map)
-        d3.selectAll(".earthquake-marker") // Replace with your actual earthquake location elements
-            .on("click", handleEarthquakeClick);
+        d3.selectAll(".earthquake-marker").on("click", handleEarthquakeClick);
 
         // Hide tooltip when clicking outside
         d3.select("body").on("click", () => {
@@ -605,32 +604,16 @@
                 let xScaleTimeline = d3.scaleTime()
                     .domain(d3.extent(data, d => d.time))
                     .range([0, innerWidth]);
-
-                if (attribute !== "Duration") {
-                    timelineChart.append("path")
-                        .datum(data)
-                        .attr("fill", "none")
-                        .attr("stroke", "steelblue")
-                        .attr("stroke-width", 1.5)
-                        .attr("d", d3.line()
-                            .x(d => xScaleTimeline(d.time))
-                            .y(d => yScale(d[attribute.toLowerCase()])));
-                } else {
-                    let countByDate = d3.rollup(data, v => v.length, d => d3.timeDay(d.time));
-                    let countData = Array.from(countByDate, ([key, value]) => ({ date: key, count: value }));
-
-                    yScale.domain([0, d3.max(countData, d => d.count)]);
-
-                    timelineChart.append("path")
-                        .datum(countData)
-                        .attr("fill", "none")
-                        .attr("stroke", "steelblue")
-                        .attr("stroke-width", 1.5)
-                        .attr("d", d3.line()
-                            .x(d => xScaleTimeline(d.date))
-                            .y(d => yScale(d.count)));
-                }
-
+        
+                timelineChart.append("path")
+                    .datum(data)
+                    .attr("fill", "none")
+                    .attr("stroke", "steelblue")
+                    .attr("stroke-width", 1.5)
+                    .attr("d", d3.line()
+                        .x(d => xScaleTimeline(d.time))
+                        .y(d => yScale(d[attribute.toLowerCase()])));
+               
                 // Add circles for each data point
                 timelineChart.selectAll("circle")
                     .data(data)
