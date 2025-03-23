@@ -40,20 +40,20 @@
             </select>
 
             <input type="number" id="depthValue1" placeholder="Enter value" min="-10" max="660">
-            <input type="number" id="depthValue2" placeholder="Enter second value" style="display: none;" min="-10" max="660">
+            <input type="number" id="depthValue2" placeholder="Enter second value" min="-10" max="660">
 
             <label for="timeRange">Time Range:</label>
             <input type="date" id="startTime" title="Start Time" placeholder="Select start date">
             <input type="date" id="endTime" title="End Time" placeholder="Select end date">
 
-            <button onclick="applyFilters()">Apply Filters</button>
-            <button onclick="resetFilters()">Reset</button>
+            <button type="button" onclick="applyFilters()">Apply Filters</button>
+            <button type="button" onclick="resetFilters()">Reset</button>
 
             <h3>Animation Controls</h3>
             <label for="speed">Speed (ms per day):</label>
             <input type="number" id="speed" value="500">
-            <button onclick="startAnimationUI()">Start Animation</button>
-            <button onclick="clearInterval(animationInterval);">Stop Animation</button>
+            <button type="button" onclick="startAnimationUI()">Start Animation</button>
+            <button type="button" onclick="clearInterval(animationInterval);">Stop Animation</button>
         </div>
         <div id="lensMap"></div>
         
@@ -66,7 +66,7 @@
            <!-- Create a dropdown for selecting the attribute to display -->
         <div class="attribute-selector">
             <label for="attributeSelector">Select Attribute for Timeline:</label>
-            <select id="attributeSelector" style="margin-bottom: 10px;">
+            <select id="attributeSelector">
                 <option value="Magnitude">Magnitude</option>
                 <option value="Depth">Depth</option>
             </select>
@@ -76,7 +76,7 @@
 
         <div class="attribute-selector">
             <label for="attributeSelectorGraph">Select Attribute for Distribution Graph:</label>
-            <select id="attributeSelectorGraph" style="margin-bottom: 10px;">
+            <select id="attributeSelectorGraph">
                 <option value="Magnitude">Magnitude</option>
                 <option value="Duration">Duration</option>
                 <option value="Depth">Depth</option>
