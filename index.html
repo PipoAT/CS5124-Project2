@@ -452,8 +452,8 @@
 
     // Apply filters to data
     let filteredData = earthquakeData.filter(d => 
-        (filters.magnitude.length === 0 || (d.magnitude >= filters.magnitude[0] && d.magnitude <= filters.magnitude[1])) &&
-        (filters.depth.length === 0 || (d.depth >= filters.depth[0] && d.depth <= filters.depth[1])) &&
+        (!filters.magnitude || filters.magnitude.length === 0 || (d.magnitude >= filters.magnitude[0] && d.magnitude <= filters.magnitude[1])) &&
+        (!filters.depth || filters.depth.length === 0 || (d.depth >= filters.depth[0] && d.depth <= filters.depth[1])) &&
         (!filters.startTime || d.time >= filters.startTime) &&
         (!filters.endTime || d.time <= filters.endTime)
     );
