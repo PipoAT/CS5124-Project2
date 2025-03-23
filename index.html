@@ -459,7 +459,7 @@
                 }
 
                 let yScale = d3.scaleLinear()
-                    .domain([0, d3.max(filteredData, d => d[attribute.toLowerCase()])])
+                    .domain([0, d3.max(filteredData || [], d => d[attribute.toLowerCase()] || 0)])
                     .range([innerHeight, 0]);
 
                 let xScaleTimeline = d3.scaleTime()
