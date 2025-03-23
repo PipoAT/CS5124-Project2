@@ -52,7 +52,7 @@
             <h3>Animation Controls</h3>
             <label for="speed">Speed (ms per day):</label>
             <input type="number" id="speed" value="500">
-            <button type="button" onclick="startAnimationUI()">Start Animation</button>
+            <button type="button" onclick="startAnimation()">Start Animation</button>
             <button type="button" onclick="clearInterval(document.getElementById('speed').value);">Stop Animation</button>
         </div>
         <div id="lensMap"></div>
@@ -424,7 +424,16 @@
             updateChartsFilter({ magnitude: [1, 8], depth: [-10, 660] });
         }
 
-        function startAnimation(startTime, endTime, speed) {
+        function startAnimation() {
+            let startTime = new Date(document.getElementById("startTime").value);
+            let endTime = new Date(document.getElementById("endTime").value);
+            let speed = document.getElementById("speed").value;
+
+            if (!startTime || !endTime || isNaN(startTime) || isNaN(endTime)) {
+                alert("Please select a valid time range.");
+                return;
+            }
+
             let currentTime = new Date(startTime);
             let animationInterval = document.getElementById("speed").value;
             accumulatedData = [];
@@ -438,19 +447,6 @@
                 updateVisualization({ startTime, endTime: currentTime });
                 currentTime.setUTCDate(currentTime.getUTCDate() + 1);
             }, speed);
-        }
-
-        function startAnimationUI() {
-            let startTime = new Date(document.getElementById("startTime").value);
-            let endTime = new Date(document.getElementById("endTime").value);
-            let speed = document.getElementById("speed").value;
-
-            if (!startTime || !endTime || isNaN(startTime) || isNaN(endTime)) {
-                alert("Please select a valid time range.");
-                return;
-            }
-
-            startAnimation(startTime, endTime, speed);
         }
 
         function updateTimelineChart(attribute, filteredData) {
