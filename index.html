@@ -440,7 +440,7 @@
             startAnimation(startTime, endTime, speed);
         }
 
-        function updateTimelineChart(attribute) {
+        function updateTimelineChart(attribute, filteredData) {
                 d3.select("#timeline").html("");
 
                 let tooltip = d3.select("body").select(".tooltip");
@@ -530,7 +530,7 @@
                 filteredData = earthquakeData;
             }
 
-            function updateBarChart(attribute) {
+            function updateBarChart(attribute, filteredData) {
                 d3.select("#magnitudeChart").html("");
 
                 let data, xScale, yScale, xAxisLabel;
@@ -627,8 +627,8 @@
             
 
             // Ensure charts are updated with the filtered data
-            updateBarChart(attributeSelectorGraph.value);
-            updateTimelineChart(attributeSelector.value);
+            updateBarChart(attributeSelectorGraph.value, filteredData);
+            updateTimelineChart(attributeSelector.value, filteredData);
         }
 
         const selectElement = document.getElementById('attributeSelector');
