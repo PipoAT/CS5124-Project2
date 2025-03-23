@@ -421,7 +421,7 @@
             currentLayer = layers["osm"];
             currentLayer.addTo(map);
             updateVisualization({ magnitude: [1, 8], depth: [-10, 660] }); // Default values after reset
-            updateCharts({ magnitude: [1, 8], depth: [-10, 660] }); // Default values after reset
+            updateChartsFilter({ magnitude: [1, 8], depth: [-10, 660] });
         }
 
         function startAnimation(startTime, endTime, speed) {
