@@ -629,7 +629,15 @@
             updateTimelineChart(attributeSelector.value);
         }
 
+        const selectElement = document.getElementById('attributeSelector');
+        selectElement.addEventListener('change', function() {
+        // Code to update the graph based on selectElement.value
+        console.log('Selected value changed to:', selectElement.value);
+        updateTimelineChart(selectElement.value);
+        });
+
         loadEarthquakeData();
+    
     </script>
 </body>
 </html>
