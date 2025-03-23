@@ -426,6 +426,7 @@
 
         function startAnimation(startTime, endTime, speed) {
             let currentTime = new Date(startTime);
+            let animationInterval = document.getElementById("speed").value;
             accumulatedData = [];
             clearInterval(animationInterval);
             animationInterval = setInterval(() => {
