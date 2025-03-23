@@ -560,13 +560,16 @@
             function updateTimelineChart(attribute) {
                 d3.select("#timeline").html("");
 
-                let tooltip = d3.select("body").append("div")
-                    .attr("class", "tooltip")
-                    .style("position", "absolute")
-                    .style("background", "#fff")
-                    .style("border", "1px solid #ccc")
-                    .style("padding", "5px")
-                    .style("display", "none");
+                let tooltip = d3.select("body").select(".tooltip");
+                if (tooltip.empty()) {
+                    tooltip = d3.select("body").append("div")
+                        .attr("class", "tooltip")
+                        .style("position", "absolute")
+                        .style("background", "#fff")
+                        .style("border", "1px solid #ccc")
+                        .style("padding", "5px")
+                        .style("display", "none");
+                }
 
                 let yScale = d3.scaleLinear()
                     .domain([0, d3.max(filteredData, d => d[attribute.toLowerCase()])])
